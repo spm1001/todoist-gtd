@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""
+Portable secrets management for Todoist CLI.
+
+Supports multiple backends:
+1. Environment variable (TODOIST_API_KEY) - works everywhere
+2. macOS Keychain - native Mac support
+3. File-based fallback (~/.todoist-token) - last resort
+
+Usage:
+    from secrets import get_token, store_token
+
+    token = get_token()  # Returns token or exits with error
+    store_token(token)   # Stores using best available backend
+"""
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Optional
+
+KEYCHAIN_SERVICE = "todoist-api-key"
+TOKEN_FILE = Path.home() / ".todoist-token"
+
+
+def _has_keychain() -> bool:
+    """Check if macOS Keychain is available."""
+    return shutil.which("security") is not None
+
+
+def _get_from_env() -> Optional[str]:
+    """Get token from environment variable."""
+    return os.environ.get("TODOIST_API_KEY")
+
+
+def _get_from_keychain() -> Optional[str]:
+    """Get token from macOS Keychain."""
+    if not _has_keychain():
+        return None
+    try:
+        result = subprocess.run(
+            ["security", "find-generic-password", "-a", os.environ.get("USER", ""), "-s", KEYCHAIN_SERVICE, "-w"],
+            capture_output=True, text=True, check=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return None
+
+
+def _get_from_file() -> Optional[str]:
+    """Get token from file."""
+    if TOKEN_FILE.exists():
+        return TOKEN_FILE.read_text().strip()
+    return None
+
+
+def _store_to_keychain(token: str) -> bool:
+    """Store token in macOS Keychain."""
+    if not _has_keychain():
+        return False
+    user = os.environ.get("USER", "")
+    try:
+        # Delete existing entry (ignore errors)
+        subprocess.run(
+            ["security", "delete-generic-password", "-a", user, "-s", KEYCHAIN_SERVICE],
+            capture_output=True, check=False
+        )
+        # Add new entry
+        subprocess.run(
+            ["security", "add-generic-password", "-a", user, "-s", KEYCHAIN_SERVICE, "-w", token],
+            check=True, capture_output=True
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
+def _store_to_file(token: str) -> bool:
+    """Store token in file with restricted permissions."""
+    try:
+        TOKEN_FILE.write_text(token + "\n")
+        TOKEN_FILE.chmod(0o600)
+        return True
+    except OSError:
+        return False
+
+
+def get_token() -> str:
+    """
+    Get Todoist API token from available backends.
+
+    Tries in order: env var -> Keychain -> file
+    Exits with error if no token found.
+    """
+    # 1. Environment variable (works everywhere)
+    token = _get_from_env()
+    if token:
+        return token
+
+    # 2. macOS Keychain
+    token = _get_from_keychain()
+    if token:
+        return token
+
+    # 3. File fallback
+    token = _get_from_file()
+    if token:
+        return token
+
+    # No token found - show platform-appropriate help
+    print("Error: TODOIST_API_KEY not found", file=sys.stderr)
+    print("\nSetup options:", file=sys.stderr)
+    if _has_keychain():
+        print('  macOS Keychain: security add-generic-password -a "$USER" -s "todoist-api-key" -w "TOKEN"', file=sys.stderr)
+    print('  Environment var: export TODOIST_API_KEY="TOKEN" in ~/.bashrc or ~/.secrets', file=sys.stderr)
+    print("\nOr run `todoist.py auth` to connect via OAuth.", file=sys.stderr)
+    sys.exit(1)
+
+
+def get_token_quiet() -> Optional[str]:
+    """Get token without exiting on failure. Returns None if not found."""
+    return _get_from_env() or _get_from_keychain() or _get_from_file()
+
+
+def store_token(token: str) -> bool:
+    """
+    Store token using best available backend.
+
+    On macOS: uses Keychain
+    On Linux: uses file with 600 permissions
+    """
+    if _has_keychain():
+        if _store_to_keychain(token):
+            print("  Token stored in macOS Keychain.", file=sys.stderr)
+            return True
+        print("  Warning: Keychain storage failed, falling back to file.", file=sys.stderr)
+
+    if _store_to_file(token):
+        print(f"  Token stored in {TOKEN_FILE} (mode 600).", file=sys.stderr)
+        return True
+
+    print("  Error: Could not store token.", file=sys.stderr)
+    return False
