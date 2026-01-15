@@ -83,19 +83,29 @@ def output_json(data: Any):
         print(json.dumps(to_dict(data), indent=2, default=str))
 
 
+def handle_task_not_found(e: Exception, task_id: str):
+    """Handle task not found errors with clean message."""
+    error_str = str(e).lower()
+    # Todoist returns 400 for invalid IDs, 404 for valid-format but missing
+    if "404" in error_str or "not found" in error_str or "400" in error_str:
+        print(f"Error: Task '{task_id}' not found or invalid", file=sys.stderr)
+        sys.exit(1)
+    # Re-raise if it's a different error
+    raise
+
+
 def resolve_project(api, name_or_id: str) -> str:
     """Resolve a project name to ID. If already an ID, return as-is."""
-    # If it looks like an ID (alphanumeric, no spaces), try it directly
-    if name_or_id and ' ' not in name_or_id and not name_or_id.startswith('@') and not name_or_id.startswith('#'):
-        # Could be an ID - return as-is, let API validate
-        return name_or_id
-
-    # Otherwise, search by name
+    # Always try name lookup first - handles names like "Personal", "Inbox"
     projects = collect_paginated(api.get_projects())
     name_lower = name_or_id.lower()
     for p in projects:
         if p.name.lower() == name_lower:
             return p.id
+
+    # Not found by name - if it looks like it could be an ID, return as-is
+    if name_or_id and ' ' not in name_or_id:
+        return name_or_id
 
     print(f"Error: Project '{name_or_id}' not found", file=sys.stderr)
     sys.exit(1)
@@ -244,7 +254,10 @@ def cmd_get_tasks(args):
 def cmd_get_task(args):
     """Get a single task with comments."""
     api = get_api()
-    task = api.get_task(args.id)
+    try:
+        task = api.get_task(args.id)
+    except Exception as e:
+        handle_task_not_found(e, args.id)
     task_dict = to_dict(task)
     if getattr(task, 'comment_count', 0) > 0:
         comments = collect_paginated(api.get_comments(task_id=args.id))
@@ -264,7 +277,10 @@ def cmd_filter_tasks(args):
 def cmd_complete_task(args):
     """Complete a task."""
     api = get_api()
-    success = api.complete_task(args.id)
+    try:
+        success = api.complete_task(args.id)
+    except Exception as e:
+        handle_task_not_found(e, args.id)
     print(json.dumps({"success": success, "task_id": args.id}))
 
 
@@ -318,7 +334,10 @@ def cmd_update_task(args):
             resolve_project_id = project_id
         else:
             # Not moving - resolve section in task's current project
-            task = api.get_task(args.id)
+            try:
+                task = api.get_task(args.id)
+            except Exception as e:
+                handle_task_not_found(e, args.id)
             resolve_project_id = task.project_id
         section_id = resolve_section(api, resolve_project_id, args.section)
 
@@ -352,6 +371,10 @@ def cmd_update_task(args):
         try:
             api.move_task(args.id, **move_kwargs)
         except Exception as e:
+            error_str = str(e).lower()
+            if "404" in error_str or "not found" in error_str:
+                print(f"Error: Task '{args.id}' not found", file=sys.stderr)
+                sys.exit(1)
             if "400" in str(e):
                 print("Error: Cannot move task - this often happens when moving between personal and shared workspace projects.", file=sys.stderr)
                 print("Workaround: Complete the task and recreate it in the target project.", file=sys.stderr)
@@ -359,10 +382,16 @@ def cmd_update_task(args):
             raise
 
     if update_kwargs:
-        api.update_task(args.id, **update_kwargs)
+        try:
+            api.update_task(args.id, **update_kwargs)
+        except Exception as e:
+            handle_task_not_found(e, args.id)
 
     # Fetch and show the updated task
-    task = api.get_task(args.id)
+    try:
+        task = api.get_task(args.id)
+    except Exception as e:
+        handle_task_not_found(e, args.id)
     output_json(task)
 
 

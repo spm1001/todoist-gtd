@@ -1,1 +1,2 @@
 todoist-api-python>=3.0.0
+requests>=2.25.0

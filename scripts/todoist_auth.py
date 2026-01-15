@@ -75,6 +75,9 @@ def _exchange_token_directly(client_id: str, client_secret: str, code: str) -> O
 
     Workaround for SDK bug where AuthResult expects 'state' field
     that Todoist doesn't return in token response.
+
+    Note: Requires 'requests' package (in requirements.txt).
+    We use requests directly rather than the SDK's auth flow.
     """
     import requests
 
