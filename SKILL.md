@@ -45,6 +45,32 @@ Weekly review triggers a **three-phase workflow:**
 
 **For detailed patterns:** See [references/PATTERNS.md](references/PATTERNS.md)
 
+## Prerequisites
+
+Before using this skill, verify the CLI is working:
+
+```bash
+# Pre-flight check
+todoist auth --status
+```
+
+**Expected:** "Authenticated with Todoist."
+
+**If this fails:**
+- `command not found` → `~/.claude/scripts` not in PATH, or wrapper missing
+- `not authenticated` → Run `todoist auth`
+- `Token revoked` → Re-run `todoist auth`
+
+**Dependencies** (should already be installed via `pip install -r requirements.txt`):
+- `todoist-api-python>=3.0.0` — Official SDK
+- `requests>=2.25.0` — OAuth token exchange
+- `httpx>=0.24.0` — Timeout configuration
+
+**System requirements:**
+- Python 3.9+
+- macOS Keychain (or `TODOIST_API_KEY` env var for Linux)
+- Network access to api.todoist.com
+
 ## CLI Setup
 
 The CLI source is `scripts/todoist.py` in this repo. A wrapper script at `~/.claude/scripts/todoist` provides the standard interface.
@@ -97,6 +123,34 @@ security add-generic-password -a "$USER" -s "todoist-api-key" -w "YOUR_TOKEN"
 If auth fails, prompt user to run `todoist auth` or check their Keychain entry.
 
 **Key design choice:** CLI shows ALL tasks by default. Unlike the MCP which defaults to hiding tasks assigned to others (`responsibleUserFiltering: "unassignedOrMe"`), this CLI shows everything. This prevents the duplicate-task bug where Claude couldn't see teammates' work.
+
+### Error Handling
+
+When CLI commands fail, use these patterns:
+
+| Error | Likely Cause | Action |
+|-------|--------------|--------|
+| `not authenticated` | Token missing or cleared | Ask user to run `todoist auth` |
+| `Token revoked or expired` | User revoked app access | Ask user to re-run `todoist auth` |
+| `Request timed out` | Slow network or API issues | Retry once, then tell user |
+| `Could not connect` | Network down | Tell user to check connection |
+| `Rate limited` | Too many requests | Wait 30s and retry |
+| `Task not found` | Bad task ID | Verify ID with user |
+| `Cannot move between workspaces` | API limitation | Suggest complete + recreate |
+
+**When to escalate to user:**
+- Auth errors (they need to act)
+- Repeated timeouts (might be their network)
+- Permission errors (might need to unlock Keychain)
+
+**When to retry silently:**
+- Single timeout (transient)
+- Single rate limit (just wait)
+
+**When to suggest re-auth:**
+- Any 401 error
+- "Token revoked" message
+- Repeated "not authenticated" after confirming auth status
 
 ## the user's Todoist Structure
 

@@ -15,9 +15,18 @@ ln -s ~/Repos/todoist-gtd ~/.claude/skills/todoist-gtd
 cd ~/Repos/todoist-gtd
 ~/.claude/.venv/bin/pip install -r requirements.txt
 
-# Set up OAuth (one-time)
-# See "OAuth Setup" below first!
-~/.claude/.venv/bin/python scripts/todoist.py auth
+# Create wrapper script (enables `todoist` command)
+cat > ~/.claude/scripts/todoist << 'EOF'
+#!/bin/bash
+~/.claude/.venv/bin/python ~/Repos/todoist-gtd/scripts/todoist.py "$@"
+EOF
+chmod +x ~/.claude/scripts/todoist
+
+# Ensure ~/.claude/scripts is in PATH (add to ~/.zshrc or ~/.bashrc)
+export PATH="$HOME/.claude/scripts:$PATH"
+
+# Set up OAuth (see "OAuth Setup" below first!)
+todoist auth
 ```
 
 ## OAuth Setup
@@ -42,7 +51,7 @@ cp client_credentials.json.template client_credentials.json
 6. Run auth:
 
 ```bash
-~/.claude/.venv/bin/python scripts/todoist.py auth
+todoist auth
 ```
 
 Browser opens, you authorize, done. Token stored in macOS Keychain.
@@ -52,7 +61,7 @@ Browser opens, you authorize, done. Token stored in macOS Keychain.
 If you can't open a browser automatically:
 
 ```bash
-~/.claude/.venv/bin/python scripts/todoist.py auth --manual
+todoist auth --manual
 ```
 
 Prints a URL. Open it, authorize, copy the failed redirect URL back.
@@ -60,9 +69,6 @@ Prints a URL. Open it, authorize, copy the failed redirect URL back.
 ## CLI Usage
 
 ```bash
-# Alias for convenience
-alias todoist='~/.claude/.venv/bin/python ~/Repos/todoist-gtd/scripts/todoist.py'
-
 # List projects
 todoist projects
 
@@ -124,6 +130,47 @@ todoist-gtd/
     ├── PATTERNS.md       # Query patterns
     └── COACHING.md       # Outcome quality examples
 ```
+
+## Troubleshooting
+
+### Auth Failures
+
+**"OAuth not configured"**
+- Missing `client_credentials.json`. Create it from the template with your Todoist app credentials.
+
+**"Port 8080 is in use"**
+- Another process is using port 8080, needed for OAuth callback.
+- Fix: Free the port (`lsof -i :8080` to find it) or use `todoist auth --manual`.
+
+**"Token revoked or expired"**
+- Re-run `todoist auth` to re-authenticate.
+
+**"Keychain is locked"**
+- Unlock your macOS Keychain (Keychain Access app or `security unlock-keychain`).
+- Or use `TODOIST_API_KEY` environment variable instead.
+
+**"Keychain access denied"**
+- Terminal needs Keychain access. Check System Preferences > Privacy > Keychain.
+
+### Network Errors
+
+**"Request timed out"**
+- Slow connection or Todoist API issues. Retry in a moment.
+
+**"Could not connect to Todoist"**
+- Check your network connection.
+
+### CLI Errors
+
+**"Task not found or invalid"**
+- Task ID doesn't exist or is malformed. Copy the full ID from Todoist.
+
+**"Cannot move task between workspaces"**
+- Todoist doesn't allow moving tasks between personal and team workspaces.
+- Workaround: Complete the task and recreate it in the target project.
+
+**"Rate limited by Todoist"**
+- Too many requests. Wait a moment and retry.
 
 ## Security
 
