@@ -724,6 +724,12 @@ def main():
                 print("Check your network connection.", file=sys.stderr)
                 sys.exit(1)
 
+            # Token expired/revoked (401 Unauthorized)
+            if "401" in str(e) or "unauthorized" in error_str:
+                print("Error: Token expired or revoked.", file=sys.stderr)
+                print("Run 'todoist auth' to re-authenticate.", file=sys.stderr)
+                sys.exit(1)
+
             # Re-raise unknown errors
             raise
     else:

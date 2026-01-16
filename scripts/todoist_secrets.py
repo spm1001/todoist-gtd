@@ -79,6 +79,9 @@ def _store_to_keychain(token: str) -> bool:
             capture_output=True, check=False
         )
         # Add new entry
+        # Note: Token appears in process list briefly. macOS security command doesn't
+        # support stdin for -w flag. Acceptable for local CLI (same-user visibility only).
+        # For stricter environments, consider using Python's keyring library.
         subprocess.run(
             ["security", "add-generic-password", "-a", user, "-s", KEYCHAIN_SERVICE, "-w", token],
             check=True, capture_output=True

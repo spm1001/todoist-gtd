@@ -297,8 +297,33 @@ def _manual_flow(auth_url: str, state: str, code_input: Optional[str] = None) ->
         params = parse_qs(parsed.query)
         url_state = params.get("state", [None])[0]
         if url_state and url_state != state:
-            print("Warning: State mismatch detected. This could indicate a security issue.", file=sys.stderr)
-            # Continue anyway for manual mode - user is in control
+            print("\n" + "!" * 60, file=sys.stderr)
+            print("!  SECURITY WARNING: State parameter mismatch detected", file=sys.stderr)
+            print("!" * 60, file=sys.stderr)
+            print("\nThis could indicate:", file=sys.stderr)
+            print("  - A CSRF attack (someone tricked you into authorizing)", file=sys.stderr)
+            print("  - You pasted a URL from an old/different auth attempt", file=sys.stderr)
+            print("  - The auth session expired and was restarted", file=sys.stderr)
+            print(f"\nExpected state: {state[:16]}...", file=sys.stderr)
+            print(f"Received state: {url_state[:16] if url_state else 'none'}...", file=sys.stderr)
+
+            if code_input:
+                # Non-interactive mode - abort on mismatch
+                print("\nAborting (non-interactive mode, state mismatch).", file=sys.stderr)
+                return None
+
+            print("\nContinue anyway? This is safe if you just ran 'todoist auth' yourself.", file=sys.stderr)
+            try:
+                response = input("   Type 'yes' to continue, anything else to abort: ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                print("\nAborted.", file=sys.stderr)
+                return None
+
+            if response != "yes":
+                print("Aborted. Run 'todoist auth --manual' to start fresh.", file=sys.stderr)
+                return None
+
+            print("Continuing despite state mismatch (user confirmed).", file=sys.stderr)
 
     return code
 
