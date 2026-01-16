@@ -15,11 +15,23 @@ VENV_PYTHON="$HOME/.claude/.venv/bin/python"
 echo "Installing todoist-gtd..."
 echo
 
-# Check Python
+# Check Python and venv
 echo "[1/5] Checking Python..."
+
+# Create venv if it doesn't exist
+if [ ! -d "$HOME/.claude/.venv" ]; then
+    echo "  Creating venv at ~/.claude/.venv..."
+    mkdir -p "$HOME/.claude"
+    if ! python3 -m venv "$HOME/.claude/.venv"; then
+        echo "  ✗ Failed to create venv"
+        echo "    Ensure python3 is installed with venv support"
+        exit 1
+    fi
+    echo "  ✓ Created venv"
+fi
+
 if [ ! -x "$VENV_PYTHON" ]; then
-    echo "  ✗ Claude venv not found at ~/.claude/.venv/"
-    echo "    Create it with: python3 -m venv ~/.claude/.venv"
+    echo "  ✗ Python not found in venv at $VENV_PYTHON"
     exit 1
 fi
 
