@@ -2,16 +2,12 @@
 
 All notable changes to todoist-gtd.
 
-## [Unreleased]
+## [2026-01-16]
 
 ### Added
 - `todoist doctor` command — checks Python, deps, wrapper, PATH, auth, network
 - `todoist version` command — shows commit hash and date
 - `scripts/install.sh` — automated setup script
-
-## [2026-01-16]
-
-### Added
 - README: Troubleshooting section (auth, network, CLI errors)
 - SKILL.md: Prerequisites section with pre-flight check
 - SKILL.md: Error handling guidance table for Claude

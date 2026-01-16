@@ -51,15 +51,16 @@ Before using this skill, verify the CLI is working:
 
 ```bash
 # Pre-flight check
-todoist auth --status
+todoist doctor
 ```
 
-**Expected:** "Authenticated with Todoist."
+**Expected:** All checks pass.
 
-**If this fails:**
-- `command not found` → `~/.claude/scripts` not in PATH, or wrapper missing
-- `not authenticated` → Run `todoist auth`
-- `Token revoked` → Re-run `todoist auth`
+**If checks fail:**
+- `command not found` → Run `scripts/install.sh`
+- Dependency missing → Run `pip install -r requirements.txt`
+- Not authenticated → Run `todoist auth`
+- Wrapper missing → Run `scripts/install.sh`
 
 **Dependencies** (should already be installed via `pip install -r requirements.txt`):
 - `todoist-api-python>=3.0.0` — Official SDK
