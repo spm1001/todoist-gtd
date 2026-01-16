@@ -7,23 +7,34 @@ All notable changes to todoist-gtd.
 ### Added
 - `todoist doctor` command — checks Python, deps, wrapper, PATH, auth, network
 - `todoist version` command — shows commit hash and date
-- `scripts/install.sh` — automated setup script
+- `scripts/install.sh` — automated setup script, now creates venv if missing
+- `scripts/verify.sh` — acceptance tests (auth, project resolution, error handling)
+- CLAUDE.md — repo instructions with contribution guidelines
+- CONTRIBUTING.md — detailed guide for contributors (Claude-optimized)
+- Issue templates — bug report and feature request
+- PR template — focused scope, testing checklist
+- LICENSE — MIT
 - README: Troubleshooting section (auth, network, CLI errors)
 - SKILL.md: Prerequisites section with pre-flight check
 - SKILL.md: Error handling guidance table for Claude
-- AGENTS.md: Agent instructions for bd workflow
 
 ### Changed
 - README/SKILL.md: Consistent `todoist` wrapper usage throughout
 - README: Quick Start now includes wrapper creation
 - OAuth: Clear error when port 8080 is in use (no false fallback)
+- OAuth manual mode: Prominent CSRF warning with user confirmation on state mismatch
 - Errors: Rate limit detection, workspace-specific 400 handling
+- Errors: 401/unauthorized detection with clear "run todoist auth" message
 - Keychain: Surface locked/denied errors with actionable messages
 - Keychain: Catch-all warning for unknown error codes
 
 ### Fixed
 - Network: 30s timeout prevents indefinite hangs
 - Dependencies: httpx now explicit in requirements.txt
+- install.sh: Creates ~/.claude/.venv if missing (fresh system support)
+
+### Removed
+- AGENTS.md — redundant with .beads/README.md and /close skill
 
 ## [2026-01-15]
 

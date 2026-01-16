@@ -169,6 +169,31 @@ todoist-gtd/
 **"Rate limited by Todoist"**
 - Too many requests. Wait a moment and retry.
 
+## For Team Members
+
+If you're joining as a contributor:
+
+1. **Clone and install** as above
+2. **Get OAuth credentials** — ask the repo owner for shared credentials, or register your own app
+3. **Read CLAUDE.md** — repo conventions and contribution guidelines
+4. **Check for open work** — `bd ready` shows available beads
+
+### Contributing via Claude
+
+When using Claude to contribute:
+- Claude reads CLAUDE.md at session start — conventions are discoverable
+- Issue/PR templates appear at point of action — guidance when you need it
+- See CONTRIBUTING.md for detailed guidelines
+
+### Sharing Credentials
+
+For teams, you can share a single OAuth app:
+1. Owner registers app at developer.todoist.com
+2. Share `client_credentials.json` securely (not via git)
+3. Each user runs `todoist auth` with the shared credentials
+
+Each user's token is stored in their own Keychain — credentials are shared, tokens are not.
+
 ## Security
 
 - **Tokens** stored in macOS Keychain (not in files)
