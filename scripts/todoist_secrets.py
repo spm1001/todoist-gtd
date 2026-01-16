@@ -55,6 +55,8 @@ def _get_from_keychain() -> Optional[str]:
             print("Warning: Keychain is locked. Unlock it or use TODOIST_API_KEY env var.", file=sys.stderr)
         elif "denied" in stderr.lower() or e.returncode == 36:  # errSecAuthFailed
             print("Warning: Keychain access denied. Check System Preferences > Privacy.", file=sys.stderr)
+        else:
+            print(f"Warning: Keychain read failed (code {e.returncode})", file=sys.stderr)
         return None
 
 
@@ -91,6 +93,8 @@ def _store_to_keychain(token: str) -> bool:
             print("Warning: Keychain access denied. Check System Preferences > Privacy.", file=sys.stderr)
         elif "duplicate" in stderr.lower() or e.returncode == 45:  # errSecDuplicateItem
             print("Warning: Could not update Keychain entry (duplicate conflict).", file=sys.stderr)
+        else:
+            print(f"Warning: Keychain write failed (code {e.returncode})", file=sys.stderr)
         return False
 
 
