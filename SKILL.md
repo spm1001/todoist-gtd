@@ -2,7 +2,7 @@
 name: todoist-gtd
 user-invocable: false
 description: >
-  MCP-free Todoist integration with GTD coaching. Uses Python CLI (scripts/todoist.py) to query
+  MCP-free Todoist integration with GTD coaching. Uses Python CLI (todoist) to query
   Todoist API v1 directly. Provides semantic understanding of the user's GTD structure (outcomes
   as sections, team vs personal, 3-tier ontology), query patterns, and outcome quality coaching.
   Also handles weekly review orchestration and pattern detection. Triggers on 'clean up outcomes',
@@ -47,17 +47,22 @@ Weekly review triggers a **three-phase workflow:**
 
 ## CLI Setup
 
-The CLI lives at `scripts/todoist.py` in this skill folder. A wrapper script provides a shorter path:
+The CLI source is `scripts/todoist.py` in this repo. A wrapper script at `~/.claude/scripts/todoist` provides the standard interface.
+
+**Why the wrapper?**
+- **Location independence** — works from any directory, not just the skill folder
+- **Venv encapsulation** — handles Python environment so callers don't need to know about it
+- **Single point of change** — if the script moves, only the wrapper needs updating
 
 ```bash
-# Short form (wrapper in ~/.claude/scripts/)
+# Standard usage (all examples in this doc use this form)
 todoist <command>
 
-# Long form (if wrapper not in PATH)
-~/.claude/.venv/bin/python scripts/todoist.py <command>
+# If ~/.claude/scripts isn't in PATH, use absolute path:
+~/.claude/scripts/todoist <command>
 ```
 
-**Ensure `~/.claude/scripts` is in your PATH** for the short form to work:
+**Ensure `~/.claude/scripts` is in your PATH:**
 ```bash
 # Add to ~/.zshrc or ~/.bashrc:
 export PATH="$HOME/.claude/scripts:$PATH"
@@ -67,19 +72,19 @@ export PATH="$HOME/.claude/scripts:$PATH"
 
 **Recommended: OAuth flow** (one-time setup)
 ```bash
-~/.claude/.venv/bin/python scripts/todoist.py auth
+todoist auth
 # Browser opens → click "Authorize" → done
 ```
 
 For SSH or remote sessions, use manual mode:
 ```bash
-~/.claude/.venv/bin/python scripts/todoist.py auth --manual
+todoist auth --manual
 # Copy URL → paste redirect URL back
 ```
 
 Check authentication status:
 ```bash
-~/.claude/.venv/bin/python scripts/todoist.py auth --status
+todoist auth --status
 ```
 
 **Fallback: Manual token** (if OAuth unavailable)
@@ -89,7 +94,7 @@ Check authentication status:
 security add-generic-password -a "$USER" -s "todoist-api-key" -w "YOUR_TOKEN"
 ```
 
-If auth fails, prompt user to run `todoist.py auth` or check their Keychain entry.
+If auth fails, prompt user to run `todoist auth` or check their Keychain entry.
 
 **Key design choice:** CLI shows ALL tasks by default. Unlike the MCP which defaults to hiding tasks assigned to others (`responsibleUserFiltering: "unassignedOrMe"`), this CLI shows everything. This prevents the duplicate-task bug where Claude couldn't see teammates' work.
 
@@ -190,19 +195,19 @@ Desired Outcomes Q4 (project)
 ### Get Account Overview
 ```bash
 # List all projects
-scripts/todoist.py projects
+todoist projects
 
 # Get sections in a project
-scripts/todoist.py sections --project-id "<project-id>"
+todoist sections --project-id "<project-id>"
 ```
 
 ### Find Outcomes (Remember: sections, not tasks!)
 ```bash
 # Get Q4 outcomes (sections in the outcomes project)
-scripts/todoist.py sections --project-id "<desired-outcomes-q4-id>"
+todoist sections --project-id "<desired-outcomes-q4-id>"
 
 # Get tasks under a specific outcome
-scripts/todoist.py tasks --section-id "<outcome-section-id>"
+todoist tasks --section-id "<outcome-section-id>"
 ```
 
 **No filtering gotcha:** CLI shows ALL tasks by default, including teammates' work.
@@ -210,10 +215,10 @@ scripts/todoist.py tasks --section-id "<outcome-section-id>"
 ### Check Claude Inbox
 ```bash
 # Find @Claude project ID first
-scripts/todoist.py projects | jq '.[] | select(.name == "@Claude")'
+todoist projects | jq '.[] | select(.name == "@Claude")'
 
 # Get tasks in @Claude inbox
-scripts/todoist.py tasks --project-id "<claude-inbox-id>"
+todoist tasks --project-id "<claude-inbox-id>"
 ```
 
 **Triage note:** Comments are included inline — check `.comments[]` for attachments and context before skipping items. See [references/PATTERNS.md](references/PATTERNS.md#inbox-triage-workflow) for the full workflow.
@@ -221,42 +226,42 @@ scripts/todoist.py tasks --project-id "<claude-inbox-id>"
 ### Filter with Todoist Syntax
 ```bash
 # Today's tasks (including overdue)
-scripts/todoist.py filter "today"
+todoist filter "today"
 
 # Assigned to someone
-scripts/todoist.py filter "assigned to: Alex"
+todoist filter "assigned to: Alex"
 
 # By label
-scripts/todoist.py filter "@waiting-for"
+todoist filter "@waiting-for"
 
 # Complex queries
-scripts/todoist.py filter "#Work & today"
+todoist filter "#Work & today"
 ```
 
 ### Common Label Queries
 ```bash
-scripts/todoist.py tasks --label "someday-maybe"
-scripts/todoist.py tasks --label "areas-of-focus"
+todoist tasks --label "someday-maybe"
+todoist tasks --label "areas-of-focus"
 ```
 
 ### Convenience Flags
 ```bash
 # Filter by project name (not just ID)
-scripts/todoist.py tasks --project "@Wait"
+todoist tasks --project "@Wait"
 
 # Filter by assignee name (requires --project)
-scripts/todoist.py tasks --project "Areas of Focus" --section-id "<id>" --assignee "Alex"
+todoist tasks --project "Areas of Focus" --section-id "<id>" --assignee "Alex"
 
 # Filter by creation date (for staleness checks)
-scripts/todoist.py tasks --project "@Wait" --created-before "2025-12-01"
+todoist tasks --project "@Wait" --created-before "2025-12-01"
 
 # Filter by age (convenience alternative to --created-before)
-scripts/todoist.py tasks --project "@Wait" --older-than 30d   # 30 days
-scripts/todoist.py tasks --project "@Wait" --older-than 2w    # 2 weeks
-scripts/todoist.py tasks --project "@Wait" --older-than 3m    # 3 months
+todoist tasks --project "@Wait" --older-than 30d   # 30 days
+todoist tasks --project "@Wait" --older-than 2w    # 2 weeks
+todoist tasks --project "@Wait" --older-than 3m    # 3 months
 
 # Include section names in output (avoids manual section_id lookup)
-scripts/todoist.py tasks --project "@Work" --include-section-name
+todoist tasks --project "@Work" --include-section-name
 ```
 
 ## Data Model
@@ -301,7 +306,7 @@ When emails are forwarded to a Todoist project's email address:
 # Read the parent_id field from the task JSON
 
 # Note: CLI doesn't have --parent-id filter for listing subtasks
-# Use filter syntax: scripts/todoist.py filter "subtask of: <parent-task-id>"
+# Use filter syntax: todoist filter "subtask of: <parent-task-id>"
 ```
 
 ### Labels Limitation
@@ -309,7 +314,7 @@ When emails are forwarded to a Todoist project's email address:
 **No label discovery endpoint.** You can filter by labels, but can't list all labels in an account. User must know label names.
 
 ```bash
-scripts/todoist.py tasks --label "waiting-for"  # Works if label exists
+todoist tasks --label "waiting-for"  # Works if label exists
 # But no: list-all-labels                       # Doesn't exist
 ```
 
@@ -321,11 +326,11 @@ scripts/todoist.py tasks --label "waiting-for"  # Works if label exists
 
 ```bash
 # This fails:
-scripts/todoist.py update <task-id> --project "Someday/Maybe"  # Error if crossing workspace
+todoist update <task-id> --project "Someday/Maybe"  # Error if crossing workspace
 
 # Workaround:
-scripts/todoist.py add "Task content" --project "Someday/Maybe"
-scripts/todoist.py done <old-task-id>
+todoist add "Task content" --project "Someday/Maybe"
+todoist done <old-task-id>
 ```
 
 ## Write Operation Guardrails
@@ -342,10 +347,10 @@ scripts/todoist.py done <old-task-id>
 
 ```bash
 # DON'T create outcome as a task
-scripts/todoist.py add "Build team documentation"  # WRONG
+todoist add "Build team documentation"  # WRONG
 
 # DO discuss and create as section
-scripts/todoist.py add-section "Built team capacity through documentation" \
+todoist add-section "Built team capacity through documentation" \
   --project-id "<desired-outcomes-q4>"  # CORRECT
 ```
 
@@ -354,7 +359,7 @@ scripts/todoist.py add-section "Built team capacity through documentation" \
 **ALWAYS complete, NEVER delete.**
 
 ```bash
-scripts/todoist.py done "<task-id>"  # CORRECT - preserves history
+todoist done "<task-id>"  # CORRECT - preserves history
 # No delete command in CLI         # By design - prevents history loss
 ```
 
@@ -364,7 +369,7 @@ Why this matters:
 - Duplicates should be completed with a note, not deleted
 
 **Use cases:**
-- Task done → `scripts/todoist.py done <id>`
+- Task done → `todoist done <id>`
 - Task is duplicate → complete it (history shows it was captured)
 - Task obsolete → complete it (still counts as "resolved")
 - Task moved elsewhere → complete it with a note in Todoist
@@ -426,7 +431,7 @@ Surface these concerns when analyzing data:
 
 1. **Query the @Claude inbox:**
    ```bash
-   scripts/todoist.py tasks --project "@Claude"
+   todoist tasks --project "@Claude"
    ```
    Returns complete tasks with `.comments[]` inline — no separate calls needed.
 
@@ -440,10 +445,10 @@ See [references/PATTERNS.md](references/PATTERNS.md#inbox-triage-workflow) for t
 
 ### "Clean up my Q1 outcomes"
 
-1. Get outcomes: `scripts/todoist.py sections --project-id "<desired-outcomes-q1>"`
+1. Get outcomes: `todoist sections --project-id "<desired-outcomes-q1>"`
 2. For each outcome, check:
    - Is it achievement language? (Tier 2 test)
-   - Does it have active work? `scripts/todoist.py tasks --section-id "<id>"`
+   - Does it have active work? `todoist tasks --section-id "<id>"`
    - Is it still relevant?
 3. Surface: "You have X outcomes. 3 have no active tasks. 2 read like activities."
 
@@ -456,8 +461,8 @@ See [references/PATTERNS.md](references/PATTERNS.md#inbox-triage-workflow) for t
 ### "Prepare for 1-1 with Alex"
 
 ```bash
-scripts/todoist.py filter "assigned to: Alex"
-scripts/todoist.py filter "assigned to: Alex & @waiting-for"
+todoist filter "assigned to: Alex"
+todoist filter "assigned to: Alex & @waiting-for"
 ```
 
 Surface: "Alex has X outcomes, Y waiting-fors. [Summary of each]"
@@ -476,16 +481,16 @@ Surface: "Alex has X outcomes, Y waiting-fors. [Summary of each]"
 
 | Query | CLI Command |
 |-------|-------------|
-| All projects | `scripts/todoist.py projects` |
-| All outcomes | `scripts/todoist.py sections --project "Desired Outcomes Q1"` |
-| Tasks under outcome | `scripts/todoist.py tasks --section-id "<outcome-id>"` |
-| Tasks with section names | `scripts/todoist.py tasks --project "@Work" --include-section-name` |
-| Person's work | `scripts/todoist.py tasks --project "X" --assignee "Name"` |
-| Waiting-fors | `scripts/todoist.py tasks --project "@Wait"` |
-| Stale waiting-fors | `scripts/todoist.py tasks --project "@Wait" --older-than 30d` |
-| Someday/Maybe | `scripts/todoist.py tasks --label "someday-maybe"` |
-| @Claude inbox | `scripts/todoist.py tasks --project "@Claude"` |
-| Today's tasks | `scripts/todoist.py filter "today"` |
+| All projects | `todoist projects` |
+| All outcomes | `todoist sections --project "Desired Outcomes Q1"` |
+| Tasks under outcome | `todoist tasks --section-id "<outcome-id>"` |
+| Tasks with section names | `todoist tasks --project "@Work" --include-section-name` |
+| Person's work | `todoist tasks --project "X" --assignee "Name"` |
+| Waiting-fors | `todoist tasks --project "@Wait"` |
+| Stale waiting-fors | `todoist tasks --project "@Wait" --older-than 30d` |
+| Someday/Maybe | `todoist tasks --label "someday-maybe"` |
+| @Claude inbox | `todoist tasks --project "@Claude"` |
+| Today's tasks | `todoist filter "today"` |
 
 **Note:** `tasks` and `task` return complete objects with `.comments[]` inline. `filter` returns tasks only (no comments — intentional, as filters can span projects and N+1 API calls would be slow).
 
@@ -493,13 +498,13 @@ Surface: "Alex has X outcomes, Y waiting-fors. [Summary of each]"
 
 | Operation | CLI Command |
 |-----------|-------------|
-| Create outcome | `scripts/todoist.py add-section "name" --project "Desired Outcomes Q1"` |
-| Create task | `scripts/todoist.py add "content" --project "@Work" --section "Now"` |
-| Complete task | `scripts/todoist.py done "<task-id>"` |
-| Rename task | `scripts/todoist.py update "<task-id>" --content "new name"` |
-| Move to project | `scripts/todoist.py update "<task-id>" --project "@Ping"` |
-| Move to section | `scripts/todoist.py update "<task-id>" --section "Now"` |
-| Move to project+section | `scripts/todoist.py update "<task-id>" --project "@Work" --section "Now"` |
+| Create outcome | `todoist add-section "name" --project "Desired Outcomes Q1"` |
+| Create task | `todoist add "content" --project "@Work" --section "Now"` |
+| Complete task | `todoist done "<task-id>"` |
+| Rename task | `todoist update "<task-id>" --content "new name"` |
+| Move to project | `todoist update "<task-id>" --project "@Ping"` |
+| Move to section | `todoist update "<task-id>" --section "Now"` |
+| Move to project+section | `todoist update "<task-id>" --project "@Work" --section "Now"` |
 
 ## Success Metrics
 
