@@ -34,7 +34,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 # TODO: Replace with actual credentials after registering at developer.todoist.com
 CLIENT_ID = "PLACEHOLDER_CLIENT_ID"
 CLIENT_SECRET = "PLACEHOLDER_CLIENT_SECRET"
-OAUTH_PORTS = [8080, 8081, 8082, 8083, 8084]  # Ports to try for OAuth callback
+OAUTH_PORT = 8080  # Must match registered redirect URI in Todoist app
 SCOPES = ["data:read_write"]
 AUTH_TIMEOUT_SECONDS = 300  # 5 minutes
 
@@ -200,22 +200,16 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         self.wfile.write(ERROR_HTML.format(error=error).encode())
 
 
-def _find_available_port() -> Optional[int]:
-    """
-    Find an available port from the configured list.
-
-    Returns the first available port, or None if all are in use.
-    """
+def _check_port_available(port: int) -> bool:
+    """Check if the OAuth callback port is available."""
     import socket
 
-    for port in OAUTH_PORTS:
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(("localhost", port))
-                return port
-        except OSError:
-            continue
-    return None
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("localhost", port))
+            return True
+    except OSError:
+        return False
 
 
 def _auto_flow(auth_url: str, state: str, port: int) -> Optional[str]:
@@ -352,21 +346,16 @@ def authenticate(manual: bool = False, code: Optional[str] = None) -> bool:
 
     state = _generate_state()
 
-    # For auto mode, find an available port first
-    port = None
+    # For auto mode, check if the callback port is available
     if not manual:
-        port = _find_available_port()
-        if port is None:
-            ports_str = ", ".join(str(p) for p in OAUTH_PORTS)
-            print(f"Error: All OAuth callback ports in use ({ports_str})", file=sys.stderr)
+        if not _check_port_available(OAUTH_PORT):
+            print(f"Error: Port {OAUTH_PORT} is in use (needed for OAuth callback)", file=sys.stderr)
             print("\nOptions:", file=sys.stderr)
-            print("  1. Free one of those ports and retry", file=sys.stderr)
+            print(f"  1. Free port {OAUTH_PORT} and retry", file=sys.stderr)
             print("  2. Use manual mode: todoist auth --manual", file=sys.stderr)
             return False
-        redirect_uri = f"http://localhost:{port}/callback"
-    else:
-        # Manual mode doesn't need a local server
-        redirect_uri = f"http://localhost:{OAUTH_PORTS[0]}/callback"
+
+    redirect_uri = f"http://localhost:{OAUTH_PORT}/callback"
 
     # Generate authorization URL with the redirect URI
     auth_url = _build_auth_url(client_id, SCOPES, state, redirect_uri)
@@ -375,7 +364,7 @@ def authenticate(manual: bool = False, code: Optional[str] = None) -> bool:
     if manual:
         auth_code = _manual_flow(auth_url, state, code)
     else:
-        auth_code = _auto_flow(auth_url, state, port)
+        auth_code = _auto_flow(auth_url, state, OAUTH_PORT)
 
     if not auth_code:
         return False
