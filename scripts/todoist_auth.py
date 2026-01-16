@@ -34,8 +34,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 # TODO: Replace with actual credentials after registering at developer.todoist.com
 CLIENT_ID = "PLACEHOLDER_CLIENT_ID"
 CLIENT_SECRET = "PLACEHOLDER_CLIENT_SECRET"
-REDIRECT_URI = "http://localhost:8080/callback"
-OAUTH_PORT = 8080
+OAUTH_PORTS = [8080, 8081, 8082, 8083, 8084]  # Ports to try for OAuth callback
 SCOPES = ["data:read_write"]
 AUTH_TIMEOUT_SECONDS = 300  # 5 minutes
 
@@ -54,12 +53,13 @@ def _load_credentials_from_file() -> tuple[str, str]:
     return CLIENT_ID, CLIENT_SECRET
 
 
-def _build_auth_url(client_id: str, scopes: list, state: str) -> str:
+def _build_auth_url(client_id: str, scopes: list, state: str, redirect_uri: str) -> str:
     """Build OAuth authorization URL."""
     params = {
         "client_id": client_id,
         "scope": ",".join(scopes),
         "state": state,
+        "redirect_uri": redirect_uri,
     }
     return f"https://todoist.com/oauth/authorize?{urlencode(params)}"
 
@@ -69,7 +69,7 @@ def _generate_state() -> str:
     return secrets.token_hex(32)
 
 
-def _exchange_token_directly(client_id: str, client_secret: str, code: str) -> Optional[str]:
+def _exchange_token_directly(client_id: str, client_secret: str, code: str, redirect_uri: str) -> Optional[str]:
     """
     Exchange authorization code for token directly via HTTP.
 
@@ -88,6 +88,7 @@ def _exchange_token_directly(client_id: str, client_secret: str, code: str) -> O
                 "client_id": client_id,
                 "client_secret": client_secret,
                 "code": code,
+                "redirect_uri": redirect_uri,
             }
         )
         response.raise_for_status()
@@ -199,7 +200,25 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         self.wfile.write(ERROR_HTML.format(error=error).encode())
 
 
-def _auto_flow(auth_url: str, state: str) -> Optional[str]:
+def _find_available_port() -> Optional[int]:
+    """
+    Find an available port from the configured list.
+
+    Returns the first available port, or None if all are in use.
+    """
+    import socket
+
+    for port in OAUTH_PORTS:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("localhost", port))
+                return port
+        except OSError:
+            continue
+    return None
+
+
+def _auto_flow(auth_url: str, state: str, port: int) -> Optional[str]:
     """
     Auto mode: Open browser and wait for localhost callback.
 
@@ -211,7 +230,12 @@ def _auto_flow(auth_url: str, state: str) -> Optional[str]:
     OAuthCallbackHandler.expected_state = state
 
     # Start server
-    server = HTTPServer(("localhost", OAUTH_PORT), OAuthCallbackHandler)
+    try:
+        server = HTTPServer(("localhost", port), OAuthCallbackHandler)
+    except OSError as e:
+        # Port became unavailable between check and bind (race condition)
+        print(f"Error: Could not bind to port {port}: {e}", file=sys.stderr)
+        return None
     server.timeout = AUTH_TIMEOUT_SECONDS
 
     # Open browser
@@ -328,14 +352,30 @@ def authenticate(manual: bool = False, code: Optional[str] = None) -> bool:
 
     state = _generate_state()
 
-    # Generate authorization URL
-    auth_url = _build_auth_url(client_id, SCOPES, state)
+    # For auto mode, find an available port first
+    port = None
+    if not manual:
+        port = _find_available_port()
+        if port is None:
+            ports_str = ", ".join(str(p) for p in OAUTH_PORTS)
+            print(f"Error: All OAuth callback ports in use ({ports_str})", file=sys.stderr)
+            print("\nOptions:", file=sys.stderr)
+            print("  1. Free one of those ports and retry", file=sys.stderr)
+            print("  2. Use manual mode: todoist auth --manual", file=sys.stderr)
+            return False
+        redirect_uri = f"http://localhost:{port}/callback"
+    else:
+        # Manual mode doesn't need a local server
+        redirect_uri = f"http://localhost:{OAUTH_PORTS[0]}/callback"
+
+    # Generate authorization URL with the redirect URI
+    auth_url = _build_auth_url(client_id, SCOPES, state, redirect_uri)
 
     # Run appropriate flow
     if manual:
         auth_code = _manual_flow(auth_url, state, code)
     else:
-        auth_code = _auto_flow(auth_url, state)
+        auth_code = _auto_flow(auth_url, state, port)
 
     if not auth_code:
         return False
@@ -344,7 +384,7 @@ def authenticate(manual: bool = False, code: Optional[str] = None) -> bool:
     # Note: Using direct HTTP instead of SDK due to AuthResult parsing bug
     # (SDK expects 'state' in response but Todoist doesn't return it)
     print("Exchanging authorization code for token...")
-    token = _exchange_token_directly(client_id, client_secret, auth_code)
+    token = _exchange_token_directly(client_id, client_secret, auth_code, redirect_uri)
     if not token:
         return False
 

@@ -42,8 +42,11 @@ from todoist_secrets import get_token
 TodoistAPI = None
 
 
+DEFAULT_TIMEOUT = 30  # seconds
+
+
 def get_api():
-    """Get authenticated TodoistAPI instance."""
+    """Get authenticated TodoistAPI instance with timeout."""
     global TodoistAPI
     if TodoistAPI is None:
         try:
@@ -55,7 +58,10 @@ def get_api():
             sys.exit(1)
 
     token = get_token()
-    return TodoistAPI(token)
+    # Configure httpx session with timeout
+    import httpx
+    session = httpx.Client(timeout=DEFAULT_TIMEOUT)
+    return TodoistAPI(token, session=session)
 
 
 def to_dict(obj: Any) -> dict:
@@ -375,9 +381,17 @@ def cmd_update_task(args):
             if "404" in error_str or "not found" in error_str:
                 print(f"Error: Task '{args.id}' not found", file=sys.stderr)
                 sys.exit(1)
+            if "429" in str(e) or "rate limit" in error_str:
+                print("Error: Rate limited by Todoist. Wait a moment and retry.", file=sys.stderr)
+                sys.exit(1)
             if "400" in str(e):
-                print("Error: Cannot move task - this often happens when moving between personal and shared workspace projects.", file=sys.stderr)
-                print("Workaround: Complete the task and recreate it in the target project.", file=sys.stderr)
+                # Try to give specific error messages for common 400 causes
+                if "workspace" in error_str or "project_id" in error_str:
+                    print("Error: Cannot move task between workspaces (personal ↔ team).", file=sys.stderr)
+                    print("Workaround: Complete the task and recreate it in the target project.", file=sys.stderr)
+                else:
+                    # Unknown 400 error - show the actual message
+                    print(f"Error: Move failed - {e}", file=sys.stderr)
                 sys.exit(1)
             raise
 
@@ -555,7 +569,27 @@ def main():
 
     handler = commands.get(args.command)
     if handler:
-        handler(args)
+        try:
+            handler(args)
+        except Exception as e:
+            # Catch network errors globally
+            error_name = type(e).__name__
+            error_str = str(e).lower()
+
+            # httpx timeout errors
+            if "timeout" in error_name.lower() or "timeout" in error_str:
+                print(f"Error: Request timed out after {DEFAULT_TIMEOUT}s", file=sys.stderr)
+                print("Check your network connection or try again.", file=sys.stderr)
+                sys.exit(1)
+
+            # httpx connection errors
+            if "connect" in error_name.lower() or "connection" in error_str:
+                print(f"Error: Could not connect to Todoist", file=sys.stderr)
+                print("Check your network connection.", file=sys.stderr)
+                sys.exit(1)
+
+            # Re-raise unknown errors
+            raise
     else:
         print(f"Unknown command: {args.command}", file=sys.stderr)
         sys.exit(1)

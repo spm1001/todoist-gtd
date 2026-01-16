@@ -45,7 +45,16 @@ def _get_from_keychain() -> Optional[str]:
             capture_output=True, text=True, check=True
         )
         return result.stdout.strip()
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        # Item not found is expected, return None silently
+        if e.returncode == 44:  # errSecItemNotFound
+            return None
+        # Surface other errors to help user diagnose
+        stderr = e.stderr.strip() if e.stderr else ""
+        if "locked" in stderr.lower() or e.returncode == 51:  # errSecInteractionNotAllowed
+            print("Warning: Keychain is locked. Unlock it or use TODOIST_API_KEY env var.", file=sys.stderr)
+        elif "denied" in stderr.lower() or e.returncode == 36:  # errSecAuthFailed
+            print("Warning: Keychain access denied. Check System Preferences > Privacy.", file=sys.stderr)
         return None
 
 
@@ -73,7 +82,15 @@ def _store_to_keychain(token: str) -> bool:
             check=True, capture_output=True
         )
         return True
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        # Surface specific errors to help user diagnose
+        stderr = e.stderr.strip() if e.stderr else ""
+        if "locked" in stderr.lower() or e.returncode == 51:
+            print("Warning: Keychain is locked. Unlock it to store token.", file=sys.stderr)
+        elif "denied" in stderr.lower() or e.returncode == 36:
+            print("Warning: Keychain access denied. Check System Preferences > Privacy.", file=sys.stderr)
+        elif "duplicate" in stderr.lower() or e.returncode == 45:  # errSecDuplicateItem
+            print("Warning: Could not update Keychain entry (duplicate conflict).", file=sys.stderr)
         return False
 
 
