@@ -11,22 +11,15 @@ A Python CLI for Todoist that understands GTD semantics — outcomes vs actions,
 git clone https://github.com/spm1001/todoist-gtd ~/Repos/todoist-gtd
 ln -s ~/Repos/todoist-gtd ~/.claude/skills/todoist-gtd
 
-# Install dependencies
+# Install (creates wrapper, installs deps)
 cd ~/Repos/todoist-gtd
-~/.claude/.venv/bin/pip install -r requirements.txt
-
-# Create wrapper script (enables `todoist` command)
-cat > ~/.claude/scripts/todoist << 'EOF'
-#!/bin/bash
-~/.claude/.venv/bin/python ~/Repos/todoist-gtd/scripts/todoist.py "$@"
-EOF
-chmod +x ~/.claude/scripts/todoist
-
-# Ensure ~/.claude/scripts is in PATH (add to ~/.zshrc or ~/.bashrc)
-export PATH="$HOME/.claude/scripts:$PATH"
+scripts/install.sh
 
 # Set up OAuth (see "OAuth Setup" below first!)
 todoist auth
+
+# Verify setup
+todoist doctor
 ```
 
 ## OAuth Setup
@@ -84,6 +77,10 @@ todoist done <task-id>
 
 # Add a task
 todoist add "Review proposal" --project "@Work" --section "Now"
+
+# Utility commands
+todoist doctor   # Check setup and diagnose issues
+todoist version  # Show version and commit info
 ```
 
 ## As a Claude Code Skill
