@@ -469,6 +469,136 @@ def cmd_auth(args):
     sys.exit(0 if success else 1)
 
 
+def cmd_doctor(args):
+    """Check CLI setup and diagnose issues."""
+    import os
+    import shutil
+    from pathlib import Path
+
+    checks_passed = 0
+    checks_failed = 0
+
+    def check(name: str, passed: bool, detail: str = ""):
+        nonlocal checks_passed, checks_failed
+        if passed:
+            checks_passed += 1
+            print(f"  ✓ {name}")
+        else:
+            checks_failed += 1
+            print(f"  ✗ {name}")
+            if detail:
+                print(f"    → {detail}")
+
+    print("Checking todoist-gtd setup...\n")
+
+    # Python version
+    print("[Python]")
+    py_version = sys.version_info
+    check(
+        f"Python {py_version.major}.{py_version.minor}.{py_version.micro}",
+        py_version >= (3, 9),
+        "Requires Python 3.9+" if py_version < (3, 9) else ""
+    )
+
+    # Dependencies
+    print("\n[Dependencies]")
+    for pkg in ["todoist_api_python", "requests", "httpx"]:
+        try:
+            __import__(pkg)
+            check(pkg, True)
+        except ImportError:
+            check(pkg, False, f"pip install {pkg.replace('_', '-')}")
+
+    # Wrapper script
+    print("\n[Wrapper]")
+    wrapper_path = Path.home() / ".claude" / "scripts" / "todoist"
+    check(
+        "~/.claude/scripts/todoist exists",
+        wrapper_path.exists(),
+        "Run: scripts/install.sh" if not wrapper_path.exists() else ""
+    )
+    if wrapper_path.exists():
+        check(
+            "wrapper is executable",
+            wrapper_path.stat().st_mode & 0o111,
+            "Run: chmod +x ~/.claude/scripts/todoist"
+        )
+
+    # PATH
+    print("\n[PATH]")
+    scripts_in_path = any(
+        "/.claude/scripts" in p for p in os.environ.get("PATH", "").split(":")
+    )
+    check(
+        "~/.claude/scripts in PATH",
+        scripts_in_path,
+        'Add to ~/.zshrc: export PATH="$HOME/.claude/scripts:$PATH"'
+    )
+
+    # Auth
+    print("\n[Authentication]")
+    from todoist_auth import get_auth_status
+    status = get_auth_status()
+    check(
+        "Todoist authenticated",
+        status["authenticated"],
+        status["message"] if not status["authenticated"] else ""
+    )
+
+    # Network (only if auth passed)
+    if status["authenticated"]:
+        print("\n[Network]")
+        try:
+            api = get_api()
+            list(api.get_projects())[:1]  # Just fetch first page
+            check("API connection", True)
+        except Exception as e:
+            check("API connection", False, str(e)[:60])
+
+    # Summary
+    print(f"\n{'─' * 40}")
+    total = checks_passed + checks_failed
+    if checks_failed == 0:
+        print(f"All {total} checks passed. Setup looks good!")
+    else:
+        print(f"{checks_passed}/{total} checks passed, {checks_failed} failed.")
+        sys.exit(1)
+
+
+def cmd_version(args):
+    """Show version and commit info."""
+    from pathlib import Path
+
+    # Try to get git commit
+    script_dir = Path(__file__).parent.parent
+    commit = "unknown"
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, check=True,
+            cwd=script_dir
+        )
+        commit = result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+
+    # Try to get commit date
+    commit_date = ""
+    try:
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%cs"],
+            capture_output=True, text=True, check=True,
+            cwd=script_dir
+        )
+        commit_date = f" ({result.stdout.strip()})"
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+
+    print(f"todoist-gtd {commit}{commit_date}")
+    print(f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+    print(f"Script: {Path(__file__).resolve()}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Todoist CLI - MCP-free interface using official Python SDK",
@@ -545,6 +675,10 @@ def main():
     p.add_argument("--project-id", help="Project ID")
     p.add_argument("--project", help="Project by name (e.g., 'Desired Outcomes Q1')")
 
+    # Utility commands
+    subparsers.add_parser("doctor", help="Check CLI setup and diagnose issues")
+    subparsers.add_parser("version", help="Show version and commit info")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -565,6 +699,8 @@ def main():
         "add-section": cmd_add_section,
         "comments": cmd_get_comments,
         "collaborators": cmd_get_collaborators,
+        "doctor": cmd_doctor,
+        "version": cmd_version,
     }
 
     handler = commands.get(args.command)
