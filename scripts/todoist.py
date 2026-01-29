@@ -58,9 +58,14 @@ def get_api():
             sys.exit(1)
 
     token = get_token()
-    # Configure httpx session with timeout
-    import httpx
-    session = httpx.Client(timeout=DEFAULT_TIMEOUT)
+    # Configure requests session with timeout via transport adapter
+    # Note: Don't use httpx - SDK expects requests.Session and breaks with httpx
+    import requests
+    from requests.adapters import HTTPAdapter
+    session = requests.Session()
+    adapter = HTTPAdapter(max_retries=3)
+    session.mount("https://", adapter)
+    # Timeout is set per-request by the SDK, we just provide the session
     return TodoistAPI(token, session=session)
 
 
