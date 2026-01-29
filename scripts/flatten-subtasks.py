@@ -455,6 +455,8 @@ def cmd_flatten(args):
 
     if not args.execute:
         print("─" * 50)
+        action = "DELETED (permanent)" if args.delete_subtasks else "completed"
+        print(f"Subtasks will be: {action}")
         print("Run with --execute to apply changes")
         return
 
@@ -487,17 +489,22 @@ def cmd_flatten(args):
             failure_count += 1
             continue
 
-        # Complete each subtask
+        # Complete or delete each subtask
         subtask_failures = 0
+        action = "delete" if args.delete_subtasks else "complete"
         for st in subtasks:
             st_id = st.get('id')
             st_content = st.get('content', '')
             try:
                 time.sleep(RATE_LIMIT_DELAY)
-                api.complete_task(st_id)
-                print(f"  ✓ Completed: {st_content[:50]}")
+                if args.delete_subtasks:
+                    api.delete_task(st_id)
+                    print(f"  ✓ Deleted: {st_content[:50]}")
+                else:
+                    api.complete_task(st_id)
+                    print(f"  ✓ Completed: {st_content[:50]}")
             except Exception as e:
-                print(f"  ✗ Failed to complete '{st_content}': {e}", file=sys.stderr)
+                print(f"  ✗ Failed to {action} '{st_content}': {e}", file=sys.stderr)
                 subtask_failures += 1
 
         if subtask_failures == 0:
@@ -524,13 +531,15 @@ def main():
 Examples:
     %(prog)s "Desired Outcomes"              # Dry-run by name
     %(prog)s --project-id 2349012345         # Dry-run by ID (more robust)
-    %(prog)s "Desired Outcomes" --execute    # Apply changes (creates backup)
+    %(prog)s "Desired Outcomes" --execute    # Apply (subtasks completed)
+    %(prog)s "Project" --execute --delete-subtasks  # Apply (subtasks deleted permanently)
     %(prog)s --restore path/to/backup.json   # Show restore plan
     %(prog)s --restore backup.json --execute # Restore descriptions
     %(prog)s --list-backups                  # List available backups
 
 Backup files are saved to ~/.claude/backups/todoist/
 Use --project-id when the project name might change between dry-run and execute.
+Use --delete-subtasks for permanent removal (default: complete, which preserves history).
 """
     )
     parser.add_argument("project", nargs="?", help="Project name")
@@ -539,6 +548,8 @@ Use --project-id when the project name might change between dry-run and execute.
                         help="Actually make changes (default is dry-run)")
     parser.add_argument("--no-backup", action="store_true",
                         help="Skip backup (not recommended)")
+    parser.add_argument("--delete-subtasks", action="store_true",
+                        help="Delete subtasks instead of completing them (permanent, no undo)")
     parser.add_argument("--restore", metavar="FILE",
                         help="Restore from backup file")
     parser.add_argument("--list-backups", action="store_true",
