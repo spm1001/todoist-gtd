@@ -16,6 +16,9 @@ Commands:
     task ID             Get single task with comments inline
     filter QUERY        Filter tasks (no comments - can return many)
     done ID             Complete a task
+    delete ID           Delete a task (works on completed tasks too)
+    uncomplete ID       Uncomplete/reopen a task
+    completed           List completed tasks (--since, --until, --project)
     add CONTENT         Create a new task (--project, --section for placement)
     update ID           Update/move task (--content, --project, --section, etc.)
     add-section NAME    Create a new section (--project or --project-id)
@@ -34,56 +37,19 @@ import json
 import re
 import subprocess
 import sys
+from datetime import datetime, timedelta
 from typing import Any
 
-from todoist_secrets import get_token
-
-# Lazy import to allow --help without SDK installed
-TodoistAPI = None
-
-
-DEFAULT_TIMEOUT = 30  # seconds
-
-
-def get_api():
-    """Get authenticated TodoistAPI instance with timeout."""
-    global TodoistAPI
-    if TodoistAPI is None:
-        try:
-            from todoist_api_python.api import TodoistAPI as API
-            TodoistAPI = API
-        except ImportError:
-            print("Error: todoist-api-python not installed", file=sys.stderr)
-            print("\nInstall with: pip install todoist-api-python", file=sys.stderr)
-            sys.exit(1)
-
-    token = get_token()
-    # Configure requests session with timeout via transport adapter
-    # Note: Don't use httpx - SDK expects requests.Session and breaks with httpx
-    import requests
-    from requests.adapters import HTTPAdapter
-    session = requests.Session()
-    adapter = HTTPAdapter(max_retries=3)
-    session.mount("https://", adapter)
-    # Timeout is set per-request by the SDK, we just provide the session
-    return TodoistAPI(token, session=session)
-
-
-def to_dict(obj: Any) -> dict:
-    """Convert SDK object to dict for JSON output."""
-    if hasattr(obj, 'to_dict'):
-        return obj.to_dict()
-    if hasattr(obj, '__dict__'):
-        return {k: v for k, v in obj.__dict__.items() if not k.startswith('_')}
-    return obj
-
-
-def collect_paginated(iterator) -> list:
-    """Collect all items from a paginated SDK iterator."""
-    items = []
-    for batch in iterator:
-        items.extend(batch)
-    return items
+from todoist_common import (
+    get_api,
+    collect_paginated,
+    to_dict,
+    resolve_project,
+    resolve_section,
+    resolve_assignee,
+    handle_task_not_found,
+    DEFAULT_TIMEOUT,
+)
 
 
 def output_json(data: Any):
@@ -92,72 +58,6 @@ def output_json(data: Any):
         print(json.dumps([to_dict(item) for item in data], indent=2, default=str))
     else:
         print(json.dumps(to_dict(data), indent=2, default=str))
-
-
-def handle_task_not_found(e: Exception, task_id: str):
-    """Handle task not found errors with clean message."""
-    error_str = str(e).lower()
-    # Todoist returns 400 for invalid IDs, 404 for valid-format but missing
-    if "404" in error_str or "not found" in error_str or "400" in error_str:
-        print(f"Error: Task '{task_id}' not found or invalid", file=sys.stderr)
-        sys.exit(1)
-    # Re-raise if it's a different error
-    raise
-
-
-def resolve_project(api, name_or_id: str) -> str:
-    """Resolve a project name to ID. If already an ID, return as-is."""
-    # Always try name lookup first - handles names like "Personal", "Inbox"
-    projects = collect_paginated(api.get_projects())
-    name_lower = name_or_id.lower()
-    for p in projects:
-        if p.name.lower() == name_lower:
-            return p.id
-
-    # Not found by name - if it looks like it could be an ID, return as-is
-    if name_or_id and ' ' not in name_or_id:
-        return name_or_id
-
-    print(f"Error: Project '{name_or_id}' not found", file=sys.stderr)
-    sys.exit(1)
-
-
-def resolve_section(api, project_id: str, name_or_id: str) -> str:
-    """Resolve a section name to ID within a project. If already an ID, return as-is."""
-    # If it looks like an ID (alphanumeric, no spaces), assume it's an ID
-    if name_or_id and ' ' not in name_or_id and len(name_or_id) < 20:
-        # Could be an ID - but also could be a short name like "Now"
-        # Try to find by name first, fall back to treating as ID
-        sections = collect_paginated(api.get_sections(project_id=project_id))
-        name_lower = name_or_id.lower()
-        for s in sections:
-            if s.name.lower() == name_lower:
-                return s.id
-        # Not found by name - assume it's an ID
-        return name_or_id
-
-    # Search by name
-    sections = collect_paginated(api.get_sections(project_id=project_id))
-    name_lower = name_or_id.lower()
-    for s in sections:
-        if s.name.lower() == name_lower:
-            return s.id
-
-    print(f"Error: Section '{name_or_id}' not found in project", file=sys.stderr)
-    sys.exit(1)
-
-
-def resolve_assignee(api, project_id: str, name_or_email: str) -> str:
-    """Resolve an assignee name/email to user ID."""
-    collaborators = collect_paginated(api.get_collaborators(project_id))
-    name_lower = name_or_email.lower()
-
-    for c in collaborators:
-        if c.name.lower() == name_lower or c.email.lower() == name_lower:
-            return c.id
-
-    print(f"Error: Collaborator '{name_or_email}' not found in project", file=sys.stderr)
-    sys.exit(1)
 
 
 def cmd_get_projects(args):
@@ -217,8 +117,6 @@ def cmd_get_tasks(args):
         sys.exit(1)
 
     if args.created_before or args.older_than:
-        from datetime import datetime, timedelta
-
         def get_created(t):
             ca = t.created_at
             if isinstance(ca, str):
@@ -293,6 +191,64 @@ def cmd_complete_task(args):
     except Exception as e:
         handle_task_not_found(e, args.id)
     print(json.dumps({"success": success, "task_id": args.id}))
+
+
+def cmd_delete_task(args):
+    """Delete a task (works on completed tasks too)."""
+    api = get_api()
+    try:
+        success = api.delete_task(args.id)
+    except Exception as e:
+        handle_task_not_found(e, args.id)
+    print(json.dumps({"success": success, "task_id": args.id}))
+
+
+def cmd_uncomplete_task(args):
+    """Uncomplete/reopen a task."""
+    api = get_api()
+    try:
+        success = api.uncomplete_task(args.id)
+    except Exception as e:
+        handle_task_not_found(e, args.id)
+    print(json.dumps({"success": success, "task_id": args.id}))
+
+
+def cmd_get_completed(args):
+    """List completed tasks."""
+    api = get_api()
+
+    # Parse dates
+    if args.since:
+        since = datetime.fromisoformat(args.since)
+    else:
+        since = datetime.now() - timedelta(days=7)  # Default: last 7 days
+
+    if args.until:
+        until = datetime.fromisoformat(args.until)
+    else:
+        until = datetime.now()
+
+    # Build filter query if project specified
+    filter_query = None
+    if args.project:
+        filter_query = f"#{args.project}"
+
+    try:
+        completed = list(api.get_completed_tasks_by_completion_date(
+            since=since,
+            until=until,
+            filter_query=filter_query
+        ))
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # Flatten batches
+    all_tasks = []
+    for batch in completed:
+        all_tasks.extend(batch)
+
+    output_json(all_tasks)
 
 
 def cmd_add_task(args):
@@ -507,7 +463,7 @@ def cmd_doctor(args):
 
     # Dependencies
     print("\n[Dependencies]")
-    for pkg in ["todoist_api_python", "requests", "httpx"]:
+    for pkg in ["todoist_api_python", "requests"]:
         try:
             __import__(pkg)
             check(pkg, True)
@@ -644,6 +600,17 @@ def main():
     p = subparsers.add_parser("done", help="Complete a task")
     p.add_argument("id", help="Task ID")
 
+    p = subparsers.add_parser("delete", help="Delete a task (works on completed tasks too)")
+    p.add_argument("id", help="Task ID")
+
+    p = subparsers.add_parser("uncomplete", help="Uncomplete/reopen a task")
+    p.add_argument("id", help="Task ID")
+
+    p = subparsers.add_parser("completed", help="List completed tasks")
+    p.add_argument("--since", help="Start date (YYYY-MM-DD), default: 7 days ago")
+    p.add_argument("--until", help="End date (YYYY-MM-DD), default: now")
+    p.add_argument("--project", help="Filter by project name")
+
     p = subparsers.add_parser("add", help="Create a new task")
     p.add_argument("content", help="Task content/title")
     p.add_argument("--description", help="Task description")
@@ -699,6 +666,9 @@ def main():
         "task": cmd_get_task,
         "filter": cmd_filter_tasks,
         "done": cmd_complete_task,
+        "delete": cmd_delete_task,
+        "uncomplete": cmd_uncomplete_task,
+        "completed": cmd_get_completed,
         "add": cmd_add_task,
         "update": cmd_update_task,
         "add-section": cmd_add_section,
@@ -717,15 +687,15 @@ def main():
             error_name = type(e).__name__
             error_str = str(e).lower()
 
-            # httpx timeout errors
+            # Timeout errors
             if "timeout" in error_name.lower() or "timeout" in error_str:
                 print(f"Error: Request timed out after {DEFAULT_TIMEOUT}s", file=sys.stderr)
                 print("Check your network connection or try again.", file=sys.stderr)
                 sys.exit(1)
 
-            # httpx connection errors
+            # Connection errors
             if "connect" in error_name.lower() or "connection" in error_str:
-                print(f"Error: Could not connect to Todoist", file=sys.stderr)
+                print("Error: Could not connect to Todoist", file=sys.stderr)
                 print("Check your network connection.", file=sys.stderr)
                 sys.exit(1)
 

@@ -27,64 +27,17 @@ import time
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
-from todoist_secrets import get_token
+from todoist_common import (
+    get_api,
+    collect_paginated,
+    to_dict,
+    resolve_project_with_name,
+    api_call_with_retry,
+    RATE_LIMIT_DELAY,
+)
 
-# Lazy import to allow --help without SDK installed
-TodoistAPI = None
-
-DEFAULT_TIMEOUT = 30
 DESCRIPTION_MAX_LENGTH = 16383  # Todoist's limit
-RATE_LIMIT_DELAY = 0.2  # seconds between API calls
-RATE_LIMIT_RETRY_DELAY = 5  # seconds to wait after 429
-MAX_RETRIES = 3
-
-
-def get_api():
-    """Get authenticated TodoistAPI instance."""
-    global TodoistAPI
-    if TodoistAPI is None:
-        try:
-            from todoist_api_python.api import TodoistAPI as API
-            TodoistAPI = API
-        except ImportError:
-            print("Error: todoist-api-python not installed", file=sys.stderr)
-            print("\nInstall with: pip install todoist-api-python", file=sys.stderr)
-            sys.exit(1)
-
-    token = get_token()
-    # Note: Don't pass httpx session - SDK expects requests.Session
-    # and breaks with httpx (complete_task fails with 'Response' has no 'ok')
-    return TodoistAPI(token)
-
-
-def collect_paginated(iterator) -> list:
-    """Collect all items from a paginated SDK iterator."""
-    items = []
-    for batch in iterator:
-        items.extend(batch)
-    return items
-
-
-def to_dict(obj: Any) -> dict:
-    """Convert SDK object to dict."""
-    if hasattr(obj, 'to_dict'):
-        return obj.to_dict()
-    if hasattr(obj, '__dict__'):
-        return {k: v for k, v in obj.__dict__.items() if not k.startswith('_')}
-    return obj
-
-
-def resolve_project(api, name: str) -> tuple[str, str]:
-    """Resolve a project name to (id, name)."""
-    projects = collect_paginated(api.get_projects())
-    name_lower = name.lower()
-    for p in projects:
-        if p.name.lower() == name_lower:
-            return p.id, p.name
-    print(f"Error: Project '{name}' not found", file=sys.stderr)
-    sys.exit(1)
 
 
 def build_description(parent_desc: str, subtasks: list[dict]) -> str:
@@ -110,24 +63,6 @@ def build_description(parent_desc: str, subtasks: list[dict]) -> str:
                 lines.append(f"  {desc_line}")
 
     return '\n'.join(lines)
-
-
-def api_call_with_retry(func, *args, **kwargs):
-    """Execute API call with rate limit handling and retry."""
-    for attempt in range(MAX_RETRIES):
-        try:
-            time.sleep(RATE_LIMIT_DELAY)  # Proactive rate limiting
-            return func(*args, **kwargs)
-        except Exception as e:
-            error_str = str(e).lower()
-            if "429" in str(e) or "rate limit" in error_str:
-                if attempt < MAX_RETRIES - 1:
-                    print(f"  ⏳ Rate limited, waiting {RATE_LIMIT_RETRY_DELAY}s...",
-                          file=sys.stderr)
-                    time.sleep(RATE_LIMIT_RETRY_DELAY)
-                    continue
-            raise
-    raise Exception("Max retries exceeded")
 
 
 def check_for_nested_subtasks(subtasks_by_parent: dict, tasks_dict: dict) -> list[str]:
@@ -371,7 +306,7 @@ def cmd_flatten(args):
         projects = collect_paginated(api.get_projects())
         project_name = next((p.name for p in projects if p.id == project_id), project_id)
     else:
-        project_id, project_name = resolve_project(api, args.project)
+        project_id, project_name = resolve_project_with_name(api, args.project)
 
     # Fetch all tasks in project
     print(f"Fetching tasks from '{project_name}'...")
