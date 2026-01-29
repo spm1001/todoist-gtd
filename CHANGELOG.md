@@ -2,6 +2,35 @@
 
 All notable changes to todoist-gtd.
 
+## [2026-01-29]
+
+### Added
+- `todoist delete ID` — delete tasks (works on completed tasks too)
+- `todoist uncomplete ID` — reopen completed tasks
+- `todoist completed` — list completed tasks with `--since`, `--until`, `--project`
+- `flatten-subtasks.py` — convert subtask hierarchies to flat tasks with descriptions
+  - Dry-run by default, `--execute` to apply
+  - Automatic backup before changes
+  - `--restore` to recover from backup
+  - `--delete-subtasks` for permanent removal (vs completing)
+  - Safety checks: nested subtasks, description length limits
+- `todoist_common.py` — shared module for code reuse
+- `test_todoist.py` — test suite with smoke tests and pytest classes
+- pytest added to requirements.txt
+
+### Changed
+- Refactored todoist.py to use shared module (~100 lines reduced)
+- Refactored flatten-subtasks.py to use shared module
+- Replaced httpx with requests session (SDK compatibility)
+- `doctor` command no longer checks for httpx
+
+### Fixed
+- SDK session bug: httpx Response lacks `.ok` attribute, breaking `complete_task`
+- Timeout now properly configured via requests adapter with retry
+
+### Removed
+- httpx dependency (was causing SDK compatibility issues)
+
 ## [2026-01-16]
 
 ### Added

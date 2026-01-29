@@ -187,8 +187,8 @@ class TestCompleted:
         run_cli("done", task["id"])
         time.sleep(0.5)  # Wait for completion to register
 
-        # List completed
-        completed = run_cli("completed", "--since", "2020-01-01")
+        # List completed (API limits date range, use last 7 days)
+        completed = run_cli("completed")  # defaults to 7 days
         assert isinstance(completed, list)
 
         # Cleanup
