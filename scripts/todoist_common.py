@@ -113,7 +113,7 @@ def resolve_project(api, name_or_id: str) -> str:
     print(f"Available projects: {', '.join(available[:10])}", file=sys.stderr)
     if len(available) > 10:
         print(f"  ...and {len(available) - 10} more", file=sys.stderr)
-    print("\n💡 Tip: Load the todoist-gtd skill for structure context!", file=sys.stderr)
+    print("\n⚠️  STOP: Load the todoist-gtd skill before using this CLI!", file=sys.stderr)
     sys.exit(1)
 
 
@@ -166,7 +166,7 @@ def resolve_section(api, project_id: str, name_or_id: str) -> str:
         print(f"Available sections: {', '.join(available)}", file=sys.stderr)
     else:
         print("This project has no sections.", file=sys.stderr)
-    print("\n💡 Tip: Load the todoist-gtd skill for structure context!", file=sys.stderr)
+    print("\n⚠️  STOP: Load the todoist-gtd skill before using this CLI!", file=sys.stderr)
     sys.exit(1)
 
 
