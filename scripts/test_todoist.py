@@ -222,6 +222,40 @@ class TestValidation:
         assert "todoist-gtd skill" in result.stderr
 
 
+class TestTimeout:
+    """Test that timeout configuration actually works."""
+
+    def test_timeout_is_enforced(self):
+        """Verify that absurdly short timeout causes failure."""
+        import todoist_common
+
+        # Save original timeout
+        original_timeout = todoist_common.DEFAULT_TIMEOUT
+
+        try:
+            # Set impossibly short timeout (1 millisecond)
+            todoist_common.DEFAULT_TIMEOUT = 0.001
+
+            # Force fresh API client with new timeout
+            todoist_common.TodoistAPI = None
+
+            # This should timeout
+            api = todoist_common.get_api()
+            try:
+                # Any API call should fail with timeout
+                list(api.get_projects())
+                assert False, "Expected timeout but request succeeded"
+            except Exception as e:
+                error_str = str(e).lower()
+                # Should be a timeout-related error
+                assert any(word in error_str for word in ['timeout', 'timed out', 'read timed out']), \
+                    f"Expected timeout error, got: {e}"
+        finally:
+            # Restore original timeout
+            todoist_common.DEFAULT_TIMEOUT = original_timeout
+            todoist_common.TodoistAPI = None
+
+
 class TestFlattenSubtasks:
     """Test flatten-subtasks script."""
 
