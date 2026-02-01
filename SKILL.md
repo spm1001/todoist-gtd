@@ -2,13 +2,12 @@
 name: todoist-gtd
 user-invocable: false
 description: >
-  MCP-free Todoist integration with GTD coaching. Uses Python CLI (todoist) to query
-  Todoist API v1 directly. Provides semantic understanding of the user's GTD structure (outcomes
-  as sections, team vs personal, 3-tier ontology), query patterns, and outcome quality coaching.
-  Also handles weekly review orchestration and pattern detection. Triggers on 'clean up outcomes',
-  'team priorities', 'Q4 review', 'is this a good outcome', 'weekly review', 'am I overcommitting',
-  'check my patterns', 'should I take this on', 'I said yes to', 'another meeting', 'they asked me to',
-  'scope creep', 'this grew into', 'freedom score', or ANY Todoist-related task. (user)
+  Orchestrates Todoist queries with GTD semantics. LOAD BEFORE any Todoist operation — CLI alone
+  doesn't know the user's structure (outcomes are sections, not tasks; team vs personal; 3-tier
+  ontology). Prevents wrong-field queries and missing context. Handles weekly review and pattern
+  detection. Triggers on 'clean up outcomes', 'team priorities', 'is this a good outcome',
+  'weekly review', 'am I overcommitting', 'check my patterns', 'should I take this on',
+  'I said yes to', 'scope creep', 'freedom score', or ANY Todoist-related task. (user)
 ---
 
 # Todoist GTD
@@ -50,8 +49,8 @@ Weekly review triggers a **three-phase workflow:**
 Before using this skill, verify the CLI is working:
 
 ```bash
-# Pre-flight check
-todoist doctor
+# Pre-flight check (use absolute path - Claude's Bash may not have PATH set)
+~/.claude/scripts/todoist doctor
 ```
 
 **Expected:** All checks pass.
@@ -59,8 +58,10 @@ todoist doctor
 **If checks fail:**
 - `command not found` → Run `scripts/install.sh`
 - Dependency missing → Run `pip install -r requirements.txt`
-- Not authenticated → Run `todoist auth`
+- Not authenticated → Run `~/.claude/scripts/todoist auth`
 - Wrapper missing → Run `scripts/install.sh`
+
+**PATH note:** Claude's Bash environment doesn't inherit `.zshrc` PATH modifications. Always use the absolute path `~/.claude/scripts/todoist` in commands rather than bare `todoist`.
 
 **Dependencies** (should already be installed via `pip install -r requirements.txt`):
 - `todoist-api-python>=3.0.0` — Official SDK
@@ -82,36 +83,29 @@ The CLI source is `scripts/todoist.py` in this repo. A wrapper script at `~/.cla
 - **Single point of change** — if the script moves, only the wrapper needs updating
 
 ```bash
-# Standard usage (all examples in this doc use this form)
-todoist <command>
-
-# If ~/.claude/scripts isn't in PATH, use absolute path:
+# Standard usage (always use absolute path in Claude sessions)
 ~/.claude/scripts/todoist <command>
 ```
 
-**Ensure `~/.claude/scripts` is in your PATH:**
-```bash
-# Add to ~/.zshrc or ~/.bashrc:
-export PATH="$HOME/.claude/scripts:$PATH"
-```
+**Note for humans:** You can add `~/.claude/scripts` to PATH in `.zshrc` for interactive use. Claude's Bash environment doesn't inherit this, so all skill examples use the absolute path.
 
 ### Authentication
 
 **Recommended: OAuth flow** (one-time setup)
 ```bash
-todoist auth
+~/.claude/scripts/todoist auth
 # Browser opens → click "Authorize" → done
 ```
 
 For SSH or remote sessions, use manual mode:
 ```bash
-todoist auth --manual
+~/.claude/scripts/todoist auth --manual
 # Copy URL → paste redirect URL back
 ```
 
 Check authentication status:
 ```bash
-todoist auth --status
+~/.claude/scripts/todoist auth --status
 ```
 
 **Fallback: Manual token** (if OAuth unavailable)
@@ -250,19 +244,19 @@ Desired Outcomes Q4 (project)
 ### Get Account Overview
 ```bash
 # List all projects
-todoist projects
+~/.claude/scripts/todoist projects
 
 # Get sections in a project
-todoist sections --project-id "<project-id>"
+~/.claude/scripts/todoist sections --project-id "<project-id>"
 ```
 
 ### Find Outcomes (Remember: sections, not tasks!)
 ```bash
 # Get Q4 outcomes (sections in the outcomes project)
-todoist sections --project-id "<desired-outcomes-q4-id>"
+~/.claude/scripts/todoist sections --project-id "<desired-outcomes-q4-id>"
 
 # Get tasks under a specific outcome
-todoist tasks --section-id "<outcome-section-id>"
+~/.claude/scripts/todoist tasks --section-id "<outcome-section-id>"
 ```
 
 **No filtering gotcha:** CLI shows ALL tasks by default, including teammates' work.
@@ -270,10 +264,10 @@ todoist tasks --section-id "<outcome-section-id>"
 ### Check Claude Inbox
 ```bash
 # Find @Claude project ID first
-todoist projects | jq '.[] | select(.name == "@Claude")'
+~/.claude/scripts/todoist projects | jq '.[] | select(.name == "@Claude")'
 
 # Get tasks in @Claude inbox
-todoist tasks --project-id "<claude-inbox-id>"
+~/.claude/scripts/todoist tasks --project-id "<claude-inbox-id>"
 ```
 
 **Triage note:** Comments are included inline — check `.comments[]` for attachments and context before skipping items. See [references/PATTERNS.md](references/PATTERNS.md#inbox-triage-workflow) for the full workflow.
@@ -281,42 +275,42 @@ todoist tasks --project-id "<claude-inbox-id>"
 ### Filter with Todoist Syntax
 ```bash
 # Today's tasks (including overdue)
-todoist filter "today"
+~/.claude/scripts/todoist filter "today"
 
 # Assigned to someone
-todoist filter "assigned to: Alex"
+~/.claude/scripts/todoist filter "assigned to: Alex"
 
 # By label
-todoist filter "@waiting-for"
+~/.claude/scripts/todoist filter "@waiting-for"
 
 # Complex queries
-todoist filter "#Work & today"
+~/.claude/scripts/todoist filter "#Work & today"
 ```
 
 ### Common Label Queries
 ```bash
-todoist tasks --label "someday-maybe"
-todoist tasks --label "areas-of-focus"
+~/.claude/scripts/todoist tasks --label "someday-maybe"
+~/.claude/scripts/todoist tasks --label "areas-of-focus"
 ```
 
 ### Convenience Flags
 ```bash
 # Filter by project name (not just ID)
-todoist tasks --project "@Wait"
+~/.claude/scripts/todoist tasks --project "@Wait"
 
 # Filter by assignee name (requires --project)
-todoist tasks --project "Areas of Focus" --section-id "<id>" --assignee "Alex"
+~/.claude/scripts/todoist tasks --project "Areas of Focus" --section-id "<id>" --assignee "Alex"
 
 # Filter by creation date (for staleness checks)
-todoist tasks --project "@Wait" --created-before "2025-12-01"
+~/.claude/scripts/todoist tasks --project "@Wait" --created-before "2025-12-01"
 
 # Filter by age (convenience alternative to --created-before)
-todoist tasks --project "@Wait" --older-than 30d   # 30 days
-todoist tasks --project "@Wait" --older-than 2w    # 2 weeks
-todoist tasks --project "@Wait" --older-than 3m    # 3 months
+~/.claude/scripts/todoist tasks --project "@Wait" --older-than 30d   # 30 days
+~/.claude/scripts/todoist tasks --project "@Wait" --older-than 2w    # 2 weeks
+~/.claude/scripts/todoist tasks --project "@Wait" --older-than 3m    # 3 months
 
 # Include section names in output (avoids manual section_id lookup)
-todoist tasks --project "@Work" --include-section-name
+~/.claude/scripts/todoist tasks --project "@Work" --include-section-name
 ```
 
 ## Data Model
@@ -402,10 +396,10 @@ todoist done <old-task-id>
 
 ```bash
 # DON'T create outcome as a task
-todoist add "Build team documentation"  # WRONG
+~/.claude/scripts/todoist add "Build team documentation"  # WRONG
 
 # DO discuss and create as section
-todoist add-section "Built team capacity through documentation" \
+~/.claude/scripts/todoist add-section "Built team capacity through documentation" \
   --project-id "<desired-outcomes-q4>"  # CORRECT
 ```
 
@@ -414,8 +408,8 @@ todoist add-section "Built team capacity through documentation" \
 **ALWAYS complete, NEVER delete.**
 
 ```bash
-todoist done "<task-id>"  # CORRECT - preserves history
-# No delete command in CLI         # By design - prevents history loss
+~/.claude/scripts/todoist done "<task-id>"  # CORRECT - preserves history
+# No delete command in CLI                   # By design - prevents history loss
 ```
 
 Why this matters:
@@ -486,7 +480,7 @@ Surface these concerns when analyzing data:
 
 1. **Query the @Claude inbox:**
    ```bash
-   todoist tasks --project "@Claude"
+   ~/.claude/scripts/todoist tasks --project "@Claude"
    ```
    Returns complete tasks with `.comments[]` inline — no separate calls needed.
 
@@ -500,10 +494,10 @@ See [references/PATTERNS.md](references/PATTERNS.md#inbox-triage-workflow) for t
 
 ### "Clean up my Q1 outcomes"
 
-1. Get outcomes: `todoist sections --project-id "<desired-outcomes-q1>"`
+1. Get outcomes: `~/.claude/scripts/todoist sections --project-id "<desired-outcomes-q1>"`
 2. For each outcome, check:
    - Is it achievement language? (Tier 2 test)
-   - Does it have active work? `todoist tasks --section-id "<id>"`
+   - Does it have active work? `~/.claude/scripts/todoist tasks --section-id "<id>"`
    - Is it still relevant?
 3. Surface: "You have X outcomes. 3 have no active tasks. 2 read like activities."
 
@@ -516,8 +510,8 @@ See [references/PATTERNS.md](references/PATTERNS.md#inbox-triage-workflow) for t
 ### "Prepare for 1-1 with Alex"
 
 ```bash
-todoist filter "assigned to: Alex"
-todoist filter "assigned to: Alex & @waiting-for"
+~/.claude/scripts/todoist filter "assigned to: Alex"
+~/.claude/scripts/todoist filter "assigned to: Alex & @waiting-for"
 ```
 
 Surface: "Alex has X outcomes, Y waiting-fors. [Summary of each]"
@@ -536,16 +530,16 @@ Surface: "Alex has X outcomes, Y waiting-fors. [Summary of each]"
 
 | Query | CLI Command |
 |-------|-------------|
-| All projects | `todoist projects` |
-| All outcomes | `todoist sections --project "Desired Outcomes Q1"` |
-| Tasks under outcome | `todoist tasks --section-id "<outcome-id>"` |
-| Tasks with section names | `todoist tasks --project "@Work" --include-section-name` |
-| Person's work | `todoist tasks --project "X" --assignee "Name"` |
-| Waiting-fors | `todoist tasks --project "@Wait"` |
-| Stale waiting-fors | `todoist tasks --project "@Wait" --older-than 30d` |
-| Someday/Maybe | `todoist tasks --label "someday-maybe"` |
-| @Claude inbox | `todoist tasks --project "@Claude"` |
-| Today's tasks | `todoist filter "today"` |
+| All projects | `~/.claude/scripts/todoist projects` |
+| All outcomes | `~/.claude/scripts/todoist sections --project "Desired Outcomes Q1"` |
+| Tasks under outcome | `~/.claude/scripts/todoist tasks --section-id "<outcome-id>"` |
+| Tasks with section names | `~/.claude/scripts/todoist tasks --project "@Work" --include-section-name` |
+| Person's work | `~/.claude/scripts/todoist tasks --project "X" --assignee "Name"` |
+| Waiting-fors | `~/.claude/scripts/todoist tasks --project "@Wait"` |
+| Stale waiting-fors | `~/.claude/scripts/todoist tasks --project "@Wait" --older-than 30d` |
+| Someday/Maybe | `~/.claude/scripts/todoist tasks --label "someday-maybe"` |
+| @Claude inbox | `~/.claude/scripts/todoist tasks --project "@Claude"` |
+| Today's tasks | `~/.claude/scripts/todoist filter "today"` |
 
 **Note:** `tasks` and `task` return complete objects with `.comments[]` inline. `filter` returns tasks only (no comments — intentional, as filters can span projects and N+1 API calls would be slow).
 
@@ -553,13 +547,13 @@ Surface: "Alex has X outcomes, Y waiting-fors. [Summary of each]"
 
 | Operation | CLI Command |
 |-----------|-------------|
-| Create outcome | `todoist add-section "name" --project "Desired Outcomes Q1"` |
-| Create task | `todoist add "content" --project "@Work" --section "Now"` |
-| Complete task | `todoist done "<task-id>"` |
-| Rename task | `todoist update "<task-id>" --content "new name"` |
-| Move to project | `todoist update "<task-id>" --project "@Ping"` |
-| Move to section | `todoist update "<task-id>" --section "Now"` |
-| Move to project+section | `todoist update "<task-id>" --project "@Work" --section "Now"` |
+| Create outcome | `~/.claude/scripts/todoist add-section "name" --project "Desired Outcomes Q1"` |
+| Create task | `~/.claude/scripts/todoist add "content" --project "@Work" --section "Now"` |
+| Complete task | `~/.claude/scripts/todoist done "<task-id>"` |
+| Rename task | `~/.claude/scripts/todoist update "<task-id>" --content "new name"` |
+| Move to project | `~/.claude/scripts/todoist update "<task-id>" --project "@Ping"` |
+| Move to section | `~/.claude/scripts/todoist update "<task-id>" --section "Now"` |
+| Move to project+section | `~/.claude/scripts/todoist update "<task-id>" --project "@Work" --section "Now"` |
 
 ## Success Metrics
 

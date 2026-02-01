@@ -11,10 +11,10 @@ todoist-gtd is a Python CLI for Todoist with GTD coaching. Two parts:
 ## Quick Commands
 
 ```bash
-todoist doctor          # Check setup
-todoist auth --status   # Check auth
-todoist projects        # List projects
-./scripts/verify.sh     # Run acceptance tests
+~/.claude/scripts/todoist doctor          # Check setup
+~/.claude/scripts/todoist auth --status   # Check auth
+~/.claude/scripts/todoist projects        # List projects
+./scripts/verify.sh                       # Run acceptance tests
 ```
 
 ## Code Conventions
@@ -54,11 +54,12 @@ Quick checklist for Claude-as-contributor:
 - New dependencies without justification
 - Features that require Todoist Premium
 
-## Working with Beads
+## Working with Arc
 
-This repo uses `bd` for issue tracking. See `.beads/README.md` or run:
+This repo uses `arc` for issue tracking:
 
 ```bash
-bd ready      # Find available work
-bd show <id>  # View issue details
+arc list              # See all work
+arc list --ready      # Find available work
+arc show <id>         # View item details
 ```

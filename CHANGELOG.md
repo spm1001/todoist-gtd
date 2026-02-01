@@ -2,6 +2,22 @@
 
 All notable changes to todoist-gtd.
 
+## [2026-02-01]
+
+### Added
+- Validation tests for project and section resolution
+
+### Changed
+- Project/section resolution now fails gracefully with helpful error messages
+  - Shows available options when project or section not found
+  - Includes reminder to load todoist-gtd skill
+- Migrated from beads to arc for issue tracking
+- All SKILL.md examples now use absolute path `~/.claude/scripts/todoist`
+- PATTERNS.md: Added "Bulk Action Intake (Sublime Loop)" pattern
+
+### Fixed
+- `--section` flag no longer throws raw 400 error when section doesn't exist
+
 ## [2026-01-29]
 
 ### Added

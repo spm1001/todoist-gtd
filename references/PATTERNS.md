@@ -115,6 +115,59 @@ Comments are inline on each task as `.comments[]`. Look for:
 - Solving problems that could build others' capability
 - Execution without reflecting on whether it matters
 
+## Bulk Action Intake (Sublime Loop)
+
+When extracting actions from meeting notes, documents, or other sources:
+
+### The Pattern
+
+1. **Extract to temp file** — Claude writes markdown with standard sections:
+   ```markdown
+   ## Waiting For
+   - NAME to TASK (context)
+   - Another person to do something
+
+   ## Ping
+   - Quick follow-up item
+   - Another quick item
+
+   ## Work
+   - Actual work task
+   ```
+
+2. **Open for user review:**
+   ```bash
+   open -a "Sublime Text" /tmp/extracted-actions.md
+   ```
+
+3. **User edits** — Fix names (Claude had "Susie", should be "Susan Takpi"), delete stale items, clarify vague actions
+
+4. **Process edited file** — Parse and add to Todoist:
+   ```bash
+   # Waiting For items → @Wait project
+   ~/.claude/scripts/todoist add "NAME to TASK" --project "@Wait"
+
+   # Ping items → @Ping project
+   ~/.claude/scripts/todoist add "Quick item" --project "@Ping"
+
+   # Work items → @Work project
+   ~/.claude/scripts/todoist add "Work task" --project "@Work"
+   ```
+
+### Why This Works
+
+- **User catches mistakes** — Names, context, missing details
+- **User can delete** — Not everything extracted is worth tracking
+- **Batch visibility** — User sees all actions before committing
+- **Clean handoff** — Clear separation between extraction and commitment
+
+### When to Use
+
+- After meetings with many action items
+- Processing email forwards or document reviews
+- Any extraction that produces 5+ items
+- When names or context might be wrong
+
 ## Integration with Todoist Data
 
 Pattern detection is more powerful when combined with data:

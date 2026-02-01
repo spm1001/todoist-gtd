@@ -195,6 +195,33 @@ class TestCompleted:
         run_cli("delete", task["id"])
 
 
+class TestValidation:
+    """Test validation error handling."""
+
+    def test_invalid_project_shows_available(self):
+        """Test that invalid project name shows available projects."""
+        result = subprocess.run(
+            [sys.executable, "todoist.py", "tasks", "--project", "NonexistentProject12345"],
+            capture_output=True, text=True
+        )
+        assert result.returncode == 1
+        assert "not found" in result.stderr.lower()
+        assert "Available projects:" in result.stderr
+        # Should show skill tip
+        assert "todoist-gtd skill" in result.stderr
+
+    def test_invalid_section_shows_available(self):
+        """Test that invalid section name shows available sections."""
+        result = subprocess.run(
+            [sys.executable, "todoist.py", "add", "test task", "--project", TEST_PROJECT, "--section", "NonexistentSection12345"],
+            capture_output=True, text=True
+        )
+        assert result.returncode == 1
+        assert "not found" in result.stderr.lower()
+        # Should show skill tip
+        assert "todoist-gtd skill" in result.stderr
+
+
 class TestFlattenSubtasks:
     """Test flatten-subtasks script."""
 

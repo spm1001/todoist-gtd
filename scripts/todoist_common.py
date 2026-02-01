@@ -90,22 +90,30 @@ def to_dict(obj: Any) -> dict:
 
 def resolve_project(api, name_or_id: str) -> str:
     """
-    Resolve a project name to ID. If already an ID, return as-is.
+    Resolve a project name to ID.
 
     Returns project ID string. Exits with error if not found.
     """
-    # Always try name lookup first - handles names like "Personal", "Inbox"
     projects = collect_paginated(api.get_projects())
     name_lower = name_or_id.lower()
+
+    # Try name lookup
     for p in projects:
         if p.name.lower() == name_lower:
             return p.id
 
-    # Not found by name - if it looks like it could be an ID, return as-is
-    if name_or_id and ' ' not in name_or_id:
-        return name_or_id
+    # Try ID lookup
+    for p in projects:
+        if p.id == name_or_id:
+            return p.id
 
+    # Not found - show available projects
+    available = sorted([p.name for p in projects])
     print(f"Error: Project '{name_or_id}' not found", file=sys.stderr)
+    print(f"Available projects: {', '.join(available[:10])}", file=sys.stderr)
+    if len(available) > 10:
+        print(f"  ...and {len(available) - 10} more", file=sys.stderr)
+    print("\n💡 Tip: Load the todoist-gtd skill for structure context!", file=sys.stderr)
     sys.exit(1)
 
 
@@ -141,15 +149,24 @@ def resolve_section(api, project_id: str, name_or_id: str) -> str:
     sections = collect_paginated(api.get_sections(project_id=project_id))
     name_lower = name_or_id.lower()
 
+    # Try name lookup
     for s in sections:
         if s.name.lower() == name_lower:
             return s.id
 
-    # Not found by name - assume it's an ID
-    if name_or_id and ' ' not in name_or_id:
-        return name_or_id
+    # Try ID lookup
+    for s in sections:
+        if s.id == name_or_id:
+            return s.id
 
+    # Not found - show available sections
+    available = [s.name for s in sections]
     print(f"Error: Section '{name_or_id}' not found in project", file=sys.stderr)
+    if available:
+        print(f"Available sections: {', '.join(available)}", file=sys.stderr)
+    else:
+        print("This project has no sections.", file=sys.stderr)
+    print("\n💡 Tip: Load the todoist-gtd skill for structure context!", file=sys.stderr)
     sys.exit(1)
 
 
