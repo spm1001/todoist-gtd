@@ -1,6 +1,5 @@
 ---
 name: todoist-gtd
-user-invocable: false
 description: >
   Orchestrates Todoist queries with GTD semantics. LOAD BEFORE any Todoist operation — CLI alone
   doesn't know the user's structure (outcomes are sections, not tasks; team vs personal; 3-tier
