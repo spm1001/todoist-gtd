@@ -40,7 +40,7 @@ import sys
 from datetime import datetime, timedelta
 from typing import Any
 
-from todoist_common import (
+from scripts.todoist_common import (
     get_api,
     collect_paginated,
     to_dict,
@@ -419,7 +419,7 @@ def cmd_get_collaborators(args):
 
 def cmd_auth(args):
     """Authenticate with Todoist."""
-    from todoist_auth import authenticate, get_auth_status
+    from scripts.todoist_auth import authenticate, get_auth_status
 
     if args.status:
         status = get_auth_status()
@@ -498,7 +498,7 @@ def cmd_doctor(args):
 
     # Auth
     print("\n[Authentication]")
-    from todoist_auth import get_auth_status
+    from scripts.todoist_auth import get_auth_status
     status = get_auth_status()
     check(
         "Todoist authenticated",

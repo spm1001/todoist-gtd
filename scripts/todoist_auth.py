@@ -39,7 +39,7 @@ SCOPES = ["data:read_write"]
 AUTH_TIMEOUT_SECONDS = 300  # 5 minutes
 
 # Import portable secrets management
-from todoist_secrets import get_token_quiet, store_token
+from scripts.todoist_secrets import get_token_quiet, store_token
 
 
 def _load_credentials_from_file() -> tuple[str, str]:

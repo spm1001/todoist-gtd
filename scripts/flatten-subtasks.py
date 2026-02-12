@@ -28,7 +28,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from todoist_common import (
+from scripts.todoist_common import (
     get_api,
     collect_paginated,
     to_dict,
