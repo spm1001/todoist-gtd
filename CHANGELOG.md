@@ -79,7 +79,7 @@ All notable changes to todoist-gtd.
 - install.sh: Creates ~/.claude/.venv if missing (fresh system support)
 
 ### Removed
-- AGENTS.md — redundant with .beads/README.md and /close skill
+- AGENTS.md — redundant with /close skill
 
 ## [2026-01-15]
 
@@ -89,7 +89,7 @@ All notable changes to todoist-gtd.
 - Invalid task IDs show clean error (catches 400 and 404)
 
 ### Added
-- Initial beads setup for project tracking (tgt-h5o epic)
+- Initial issue tracking setup (tgt-h5o epic)
 
 ## [2026-01-07]
 

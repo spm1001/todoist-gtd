@@ -72,7 +72,7 @@ CLAUDE.md             # Repo instructions (Claude reads at session start)
 When contributing via Claude:
 
 1. **Read CLAUDE.md first** — It has repo-specific conventions
-2. **Check existing issues** — `bd ready` shows open work
+2. **Check existing issues** — `arc ready` shows open work
 3. **Small PRs** — Easier to review, faster to merge
 4. **Don't guess** — If requirements are unclear, ask via issue first
 
@@ -88,16 +88,16 @@ When contributing via Claude:
 
 ## Issue Tracking
 
-This repo uses `bd` (beads) for issue tracking:
+This repo uses `arc` for issue tracking:
 
 ```bash
-bd ready              # Find unblocked work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id> --reason "..."         # Complete work
+arc ready             # Find unblocked work
+arc show <id>         # View issue details
+arc work <id>         # Claim work
+arc done <id>         # Complete work
 ```
 
-Issues live in `.beads/issues.jsonl` and sync with git.
+Issues live in `.arc/items.jsonl` and sync with git.
 
 ## Questions?
 

@@ -62,7 +62,7 @@ When processing @Claude or any inbox project:
    scripts/todoist.py tasks --project "@Claude"
 
 2. For EACH item, check .comments[] then decide:
-   - bead: Create issue, complete task
+   - arc: Create issue, complete task
    - skip: Complete task (context-lost or not actionable)
    - move: Update task to different project/section
    - do now: Handle immediately, complete task
@@ -74,7 +74,7 @@ When processing @Claude or any inbox project:
    - update <id> --content "better name" # Rename
 
 4. Report summary
-   "Processed X items: Y beaded, Z moved, W skipped"
+   "Processed X items: Y arc'd, Z moved, W skipped"
 ```
 
 ### Reading Comments
@@ -92,10 +92,10 @@ Comments are inline on each task as `.comments[]`. Look for:
 
 | Signal | Likely Disposition |
 |--------|-------------------|
-| Has attachments in `.comments[]` | Worth investigating — bead or do |
+| Has attachments in `.comments[]` | Worth investigating — arc or do |
 | Empty comments array | Probably quick capture — skip or do |
 | Clear next action | Do now or move to @Work |
-| Complex/multi-step | Bead it |
+| Complex/multi-step | Arc it |
 
 ## When to Invoke Patterns
 

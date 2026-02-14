@@ -176,7 +176,7 @@ If you're joining as a contributor:
 1. **Clone and install** as above
 2. **Get OAuth credentials** — ask the repo owner for shared credentials, or register your own app
 3. **Read CLAUDE.md** — repo conventions and contribution guidelines
-4. **Check for open work** — `bd ready` shows available beads
+4. **Check for open work** — `arc ready` shows available work
 
 ### Contributing via Claude
 

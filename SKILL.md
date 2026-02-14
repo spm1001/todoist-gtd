@@ -215,7 +215,7 @@ Desired Outcomes Q4 (project)
 |------------------------|----------------------------|
 | Review Claude workspace MCP | Decided on workspace MCP authentication approach |
 | Create Image generation skill | Created image generation skill for Claude to use NanoBanana |
-| Build mega-beads synthesis tool | Figured out how to review and plan beads across Repos |
+| Build mega-arc synthesis tool | Figured out how to review and plan arc items across Repos |
 | Improve Conceptual Charts skill | Taught Claude how to make decent quality conceptual charts |
 
 **The pattern:** Start with past-tense verb, describe what you'll *have done*, include the "so what" (why it matters or what decision it enables).
