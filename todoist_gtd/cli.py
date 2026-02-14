@@ -529,10 +529,13 @@ def cmd_version(args):
 
 
 def main():
+    from importlib.metadata import version as pkg_version
     parser = argparse.ArgumentParser(
         description="Todoist CLI - MCP-free interface using official Python SDK",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    parser.add_argument('--version', '-V', action='version',
+                        version=f'todoist-gtd {pkg_version("todoist-gtd")}')
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # Auth command
