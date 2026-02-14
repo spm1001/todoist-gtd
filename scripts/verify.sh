@@ -2,7 +2,7 @@
 #
 # Verification script for todoist-gtd CLI
 #
-# Tests key acceptance criteria from beads:
+# Tests key acceptance criteria from arc:
 #   - auth --status works
 #   - --project Personal resolution works
 #   - Invalid task ID returns proper error
