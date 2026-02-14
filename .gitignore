@@ -1,5 +1,6 @@
 # Credentials (users create their own)
 scripts/client_credentials.json
+client_credentials.json
 
 # Python
 __pycache__/
