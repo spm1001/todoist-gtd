@@ -1,0 +1,17 @@
+[project]
+name = "todoist-gtd"
+version = "0.1.0"
+description = "Todoist CLI with GTD coaching semantics"
+requires-python = ">=3.9"
+dependencies = [
+    "todoist-api-python>=3.0.0",
+    "requests>=2.25.0",
+]
+
+[project.scripts]
+todoist = "todoist_gtd.cli:main"
+todoist-flatten = "todoist_gtd.flatten:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
