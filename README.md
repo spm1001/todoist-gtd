@@ -1,5 +1,10 @@
 # todoist-gtd
 
+> **Status:** Beta — actively developed
+> **Works with:** Claude Code, standalone CLI
+> **Install:** `git clone` + `scripts/install.sh`
+> **Requires:** Python 3.11+, Todoist account + OAuth app
+
 Todoist CLI with GTD coaching for Claude Code.
 
 A Python CLI for Todoist that understands GTD semantics — outcomes vs actions, team priorities, weekly reviews. Designed as a Claude Code skill but works standalone too.
