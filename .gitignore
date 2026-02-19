@@ -3,8 +3,6 @@ scripts/client_credentials.json
 client_credentials.json
 
 # Python
-__pycache__/
-*.py[cod]
 *$py.class
 *.so
 .Python
@@ -12,17 +10,6 @@ __pycache__/
 venv/
 ENV/
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
 
 # Archived tracking (local backup)
 .beads-archived/
-mise-fetch/
