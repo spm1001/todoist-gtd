@@ -1,0 +1,9 @@
+{
+  "name": "todoist-gtd",
+  "version": "0.1.0",
+  "description": "Todoist CLI with GTD coaching for Claude Code. Requires: todoist CLI (uv tool install todoist-gtd)",
+  "author": { "name": "Sameer Modha", "url": "https://github.com/spm1001" },
+  "repository": "https://github.com/spm1001/todoist-gtd",
+  "license": "MIT",
+  "keywords": ["todoist", "gtd", "productivity", "coaching"]
+}
