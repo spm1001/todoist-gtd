@@ -19,7 +19,7 @@ fi
 
 # 2. Check API token
 if [ -z "${TODOIST_API_KEY:-}" ]; then
-    ISSUES="${ISSUES}• No TODOIST_API_KEY set. Get your token from https://todoist.com/prefs/integrations then: export TODOIST_API_KEY=\"your_token\"\n"
+    ISSUES="${ISSUES}• No TODOIST_API_KEY set. Open https://app.todoist.com/app/settings/integrations/developer — token is at the bottom. Then: export TODOIST_API_KEY=\"your_token\"\n"
 fi
 
 # If no issues, exit silently

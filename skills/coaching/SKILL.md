@@ -11,26 +11,54 @@ description: >
 
 # Todoist GTD
 
-## CLI Installation
+## Setup (do this for the user, don't ask)
 
-Todoist GTD requires the `todoist` CLI. If not in PATH, install from the plugin source:
+**Be proactive.** If todoist isn't working, fix it — don't list commands for the user to run.
 
+### 1. Install the CLI (if missing)
+
+Find and install from the plugin cache:
 ```bash
-uv tool install "${CLAUDE_PLUGIN_ROOT}"
+TODOIST_DIR=$(find ~/.claude/plugins/cache -path "*/todoist-gtd/*/pyproject.toml" -exec dirname {} \; 2>/dev/null | head -1)
+uv tool install "$TODOIST_DIR"
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-If `CLAUDE_PLUGIN_ROOT` isn't set (manual install), use: `uv tool install todoist-gtd` or `uv tool install ~/Repos/todoist-gtd`.
+If `CLAUDE_PLUGIN_ROOT` is set, use that instead: `uv tool install "${CLAUDE_PLUGIN_ROOT}"`.
 
-## Authentication
-
-Set your API token (get it from https://todoist.com/prefs/integrations):
+### 2. Check for API token
 
 ```bash
-export TODOIST_API_KEY="your_token_here"
+todoist doctor
 ```
 
-For persistence, add to your shell profile (`~/.zshrc` or `~/.bashrc`).
+If doctor reports "API token not set", the user needs their personal token. **Open the URL for them:**
+
+```bash
+open "https://app.todoist.com/app/settings/integrations/developer"  # macOS
+# or: xdg-open "https://app.todoist.com/app/settings/integrations/developer"  # Linux desktop
+```
+
+Then tell them: "I've opened Todoist settings. Scroll to the bottom — your API token is there. Copy and paste it here."
+
+Once they paste the token, set it:
+```bash
+export TODOIST_API_KEY="<token_they_pasted>"
+```
+
+For persistence across sessions, write to shell profile:
+```bash
+echo 'export TODOIST_API_KEY="<token>"' >> ~/.zshrc  # macOS
+# or: >> ~/.bashrc  # Linux
+```
+
+### 3. Verify
+
+```bash
+todoist doctor
+```
+
+All checks should pass. If "API token not set" persists, the export didn't take — check the token value.
 
 ## Overview
 
