@@ -17,15 +17,17 @@ if ! command -v todoist &>/dev/null; then
     fi
 fi
 
-# 2. Check API token (env var or macOS Keychain)
+# 2. Check API token (env var, macOS Keychain, or file)
 HAS_TOKEN=false
 if [ -n "${TODOIST_API_KEY:-}" ]; then
     HAS_TOKEN=true
-elif command -v security &>/dev/null; then
-    security find-generic-password -s "todoist-api-key" -w &>/dev/null && HAS_TOKEN=true
+elif command -v security &>/dev/null && security find-generic-password -s "todoist-api-key" -w &>/dev/null; then
+    HAS_TOKEN=true
+elif [ -f "$HOME/.todoist-token" ]; then
+    HAS_TOKEN=true
 fi
 if [ "$HAS_TOKEN" = false ]; then
-    ISSUES="${ISSUES}• No Todoist API token found (checked env var and Keychain). Run: todoist auth\n"
+    ISSUES="${ISSUES}• No Todoist API token found. Run: todoist auth\n"
 fi
 
 # If no issues, exit silently

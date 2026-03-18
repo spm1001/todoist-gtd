@@ -352,6 +352,50 @@ def _parse_code_from_input(input_str: str) -> str:
     return input_str
 
 
+TODOIST_TOKEN_URL = "https://app.todoist.com/app/settings/integrations/developer"
+
+
+def _personal_token_flow() -> bool:
+    """
+    Authenticate using a personal API token.
+
+    Opens the Todoist developer settings page (if possible), prompts for
+    the token, and stores it via token_store (Keychain on Mac, file on Linux).
+    """
+    print("Personal API Token Setup")
+    print("=" * 40)
+    print(f"\nGet your token from: {TODOIST_TOKEN_URL}")
+    print("(Scroll to the bottom — your API token is there.)\n")
+
+    # Try to open in browser
+    try:
+        webbrowser.open(TODOIST_TOKEN_URL)
+        print("Opened in your browser.")
+    except Exception:
+        pass  # Headless — URL is printed above
+
+    try:
+        token = input("Paste your API token: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print("\nCancelled.", file=sys.stderr)
+        return False
+
+    if not token:
+        print("No token provided.", file=sys.stderr)
+        return False
+
+    # Quick validation: Todoist API tokens are 40-char hex strings
+    if len(token) != 40 or not all(c in "0123456789abcdef" for c in token):
+        print("Warning: Token doesn't look like a Todoist API token (expected 40 hex chars).", file=sys.stderr)
+        print("Storing anyway — doctor will verify it works.\n", file=sys.stderr)
+
+    if not store_token(token):
+        return False
+
+    print("\n✓ Token stored. Run `todoist doctor` to verify.")
+    return True
+
+
 def authenticate(manual: bool = False, code: Optional[str] = None) -> bool:
     """
     Run OAuth authentication flow.
@@ -365,15 +409,7 @@ def authenticate(manual: bool = False, code: Optional[str] = None) -> bool:
     client_id, client_secret = _load_credentials_from_file()
 
     if client_id == "PLACEHOLDER_CLIENT_ID":
-        print("Error: OAuth not configured.", file=sys.stderr)
-        print("\nTo set up OAuth:", file=sys.stderr)
-        print("  1. Register an app at https://developer.todoist.com", file=sys.stderr)
-        print("  2. Create ~/.config/todoist-gtd/client_credentials.json with:", file=sys.stderr)
-        print('     {"client_id": "your_id", "client_secret": "your_secret"}', file=sys.stderr)
-        print("\nAlternatively, use a personal API token:", file=sys.stderr)
-        print("  1. Get your token from: https://todoist.com/prefs/integrations", file=sys.stderr)
-        print('  2. Set: export TODOIST_API_KEY="TOKEN" in ~/.bashrc or ~/.secrets', file=sys.stderr)
-        return False
+        return _personal_token_flow()
 
     state = _generate_state()
 

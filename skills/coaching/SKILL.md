@@ -15,8 +15,6 @@ description: >
 
 **Be proactive.** If todoist isn't working, fix it — don't list commands for the user to run.
 
-**NEVER echo the API token back to the user.** Not in text, not in suggested commands, not in "add this to your bashrc" instructions. The token is a secret. Write it to the shell profile silently and confirm it's done without showing the value.
-
 ### 1. Install the CLI (if missing)
 
 Find and install from the plugin cache:
@@ -28,39 +26,15 @@ export PATH="$HOME/.local/bin:$PATH"
 
 If `CLAUDE_PLUGIN_ROOT` is set, use that instead: `uv tool install "${CLAUDE_PLUGIN_ROOT}"`.
 
-### 2. Check for API token
+### 2. Authenticate
 
 ```bash
 todoist doctor
 ```
 
-If doctor reports "API token not set", the user needs their personal token. **Open the URL for them:**
+If doctor reports no token, run `todoist auth`. This opens the Todoist settings page, prompts for the API token, and stores it (Keychain on Mac, `~/.todoist-token` on Linux). No manual env vars or shell profile edits needed.
 
-```bash
-open "https://app.todoist.com/app/settings/integrations/developer"  # macOS
-# or: xdg-open "https://app.todoist.com/app/settings/integrations/developer"  # Linux desktop
-```
-
-Then tell them: "I've opened Todoist settings. Scroll to the bottom — your API token is there. Copy and paste it here."
-
-Once they paste the token, set it:
-```bash
-export TODOIST_API_KEY="<token_they_pasted>"
-```
-
-For persistence across sessions, write to shell profile:
-```bash
-echo 'export TODOIST_API_KEY="<token>"' >> ~/.zshrc  # macOS
-# or: >> ~/.bashrc  # Linux
-```
-
-### 3. Verify
-
-```bash
-todoist doctor
-```
-
-All checks should pass. If "API token not set" persists, the export didn't take — check the token value.
+**NEVER echo the API token back to the user.** The token is a secret.
 
 ## Overview
 

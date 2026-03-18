@@ -26,10 +26,9 @@ Commands:
     collaborators       Get project collaborators (requires --project-id)
 
 Authentication:
-    Run `todoist auth` to authenticate via OAuth (recommended).
-    Or set TODOIST_API_KEY environment variable.
-    On macOS, can also use Keychain:
-        security add-generic-password -a "$USER" -s "todoist-api-key" -w "TOKEN"
+    Run `todoist auth` to set up (opens Todoist settings, prompts for token).
+    Token is stored in macOS Keychain or ~/.todoist-token.
+    Or set TODOIST_API_KEY environment variable directly.
 """
 
 import argparse
@@ -539,7 +538,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # Auth command
-    p = subparsers.add_parser("auth", help="Authenticate with Todoist (OAuth)")
+    p = subparsers.add_parser("auth", help="Authenticate with Todoist")
     p.add_argument("--manual", action="store_true", help="Use manual mode (paste redirect URL)")
     p.add_argument("--code", help="Authorization code or redirect URL (for non-interactive manual mode)")
     p.add_argument("--status", action="store_true", help="Check authentication status")
