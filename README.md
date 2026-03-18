@@ -119,18 +119,17 @@ Adapt the project names in SKILL.md to match your structure.
 
 ```
 todoist-gtd/
-├── SKILL.md              # Claude skill definition
-├── README.md             # This file
-├── requirements.txt      # Python dependencies
-├── scripts/
-│   ├── todoist.py        # Main CLI
-│   ├── todoist_auth.py   # OAuth flow
-│   ├── todoist_secrets.py # Keychain integration
-│   └── client_credentials.json.template
-└── references/
-    ├── TERMINOLOGY.md    # GTD vocabulary
-    ├── PATTERNS.md       # Query patterns
-    └── COACHING.md       # Outcome quality examples
+├── src/todoist_gtd/      # Python package
+│   ├── cli.py            # Main CLI (todoist command)
+│   ├── auth.py           # OAuth flow
+│   ├── token_store.py    # Keychain integration
+│   ├── common.py         # Shared utilities
+│   └── flatten.py        # Subtask flattening (todoist-flatten)
+├── skills/coaching/      # Claude Code skill
+│   ├── SKILL.md          # Skill definition
+│   └── references/       # GTD vocabulary, patterns, coaching
+├── pyproject.toml        # Package config + entry points
+└── docs/                 # Field reports and design docs
 ```
 
 ## Troubleshooting
