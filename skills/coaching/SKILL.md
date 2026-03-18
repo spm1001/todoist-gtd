@@ -11,6 +11,19 @@ description: >
 
 # Todoist GTD
 
+## CLI Installation
+
+Todoist GTD requires the `todoist` CLI. If not in PATH, install from the plugin source:
+
+```bash
+uv tool install "${CLAUDE_PLUGIN_ROOT}"
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+If `CLAUDE_PLUGIN_ROOT` isn't set (manual install), use: `uv tool install todoist-gtd` or `uv tool install ~/Repos/todoist-gtd`.
+
+## Overview
+
 MCP-free Todoist integration using the official Python SDK (v1 API). Adds semantic understanding of the user's GTD structure and outcome quality coaching on top of the CLI's data access.
 
 **Core insight:** The CLI provides data. This skill provides meaning.
