@@ -15,6 +15,8 @@ description: >
 
 **Be proactive.** If todoist isn't working, fix it — don't list commands for the user to run.
 
+**NEVER echo the API token back to the user.** Not in text, not in suggested commands, not in "add this to your bashrc" instructions. The token is a secret. Write it to the shell profile silently and confirm it's done without showing the value.
+
 ### 1. Install the CLI (if missing)
 
 Find and install from the plugin cache:
