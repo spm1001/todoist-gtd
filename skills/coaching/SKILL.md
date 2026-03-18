@@ -22,6 +22,16 @@ export PATH="$HOME/.local/bin:$PATH"
 
 If `CLAUDE_PLUGIN_ROOT` isn't set (manual install), use: `uv tool install todoist-gtd` or `uv tool install ~/Repos/todoist-gtd`.
 
+## Authentication
+
+Set your API token (get it from https://todoist.com/prefs/integrations):
+
+```bash
+export TODOIST_API_KEY="your_token_here"
+```
+
+For persistence, add to your shell profile (`~/.zshrc` or `~/.bashrc`).
+
 ## Overview
 
 MCP-free Todoist integration using the official Python SDK (v1 API). Adds semantic understanding of the user's GTD structure and outcome quality coaching on top of the CLI's data access.
