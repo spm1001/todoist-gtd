@@ -29,7 +29,7 @@ todoist version         # Show version
 ## Package Structure
 
 ```
-todoist_gtd/
+src/todoist_gtd/
 ├── cli.py          # Main CLI entry point (todoist command)
 ├── common.py       # Shared utilities (API client, pagination, resolution)
 ├── auth.py         # OAuth authentication flow
@@ -44,41 +44,12 @@ Entry points defined in `pyproject.toml`:
 Install: `uv tool install ~/Repos/todoist-gtd`
 Reinstall after changes: `uv tool install --force ~/Repos/todoist-gtd`
 
-## Contributing
+## Working with Bon
 
-**Before filing issues or PRs, read CONTRIBUTING.md.**
-
-Quick checklist for Claude-as-contributor:
-
-### Issues
-- Include minimum reproduction (smallest steps that show the problem)
-- Include `todoist version` output
-- Expected vs actual behavior
-- One issue per problem
-
-### Pull Requests
-- One focused change per PR
-- Run `./scripts/verify.sh` before submitting
-- Describe *why*, not just *what*
-- Update CHANGELOG.md for user-visible changes
-
-### What's In Scope
-- Bug fixes
-- CLI improvements (new flags, better errors)
-- Skill enhancements (better coaching, new patterns)
-- Documentation improvements
-
-### What's Out of Scope
-- Major architectural changes (discuss first)
-- New dependencies without justification
-- Features that require Todoist Premium
-
-## Working with Arc
-
-This repo uses `arc` for issue tracking:
+This repo uses `bon` for work tracking:
 
 ```bash
-arc list              # See all work
-arc list --ready      # Find available work
-arc show <id>         # View item details
+bon list              # See all work
+bon list --ready      # Find available work
+bon show <id>         # View item details
 ```
