@@ -17,9 +17,15 @@ if ! command -v todoist &>/dev/null; then
     fi
 fi
 
-# 2. Check API token
-if [ -z "${TODOIST_API_KEY:-}" ]; then
-    ISSUES="${ISSUES}• No TODOIST_API_KEY set. Open https://app.todoist.com/app/settings/integrations/developer — token is at the bottom. Then: export TODOIST_API_KEY=\"your_token\"\n"
+# 2. Check API token (env var or macOS Keychain)
+HAS_TOKEN=false
+if [ -n "${TODOIST_API_KEY:-}" ]; then
+    HAS_TOKEN=true
+elif command -v security &>/dev/null; then
+    security find-generic-password -s "todoist-api-key" -w &>/dev/null && HAS_TOKEN=true
+fi
+if [ "$HAS_TOKEN" = false ]; then
+    ISSUES="${ISSUES}• No Todoist API token found (checked env var and Keychain). Run: todoist auth\n"
 fi
 
 # If no issues, exit silently
