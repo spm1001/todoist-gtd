@@ -145,13 +145,13 @@ When extracting actions from meeting notes, documents, or other sources:
 4. **Process edited file** — Parse and add to Todoist:
    ```bash
    # Waiting For items → @Wait project
-   ~/.claude/scripts/todoist add "NAME to TASK" --project "@Wait"
+   todoist add "NAME to TASK" --project "@Wait"
 
    # Ping items → @Ping project
-   ~/.claude/scripts/todoist add "Quick item" --project "@Ping"
+   todoist add "Quick item" --project "@Ping"
 
    # Work items → @Work project
-   ~/.claude/scripts/todoist add "Work task" --project "@Work"
+   todoist add "Work task" --project "@Work"
    ```
 
 ### Why This Works

@@ -470,30 +470,14 @@ def cmd_doctor(args):
         except ImportError:
             check(pkg, False, f"pip install {pkg.replace('_', '-')}")
 
-    # Wrapper script
-    print("\n[Wrapper]")
-    wrapper_path = Path.home() / ".claude" / "scripts" / "todoist"
+    # CLI on PATH
+    print("\n[CLI]")
+    import shutil
+    todoist_on_path = shutil.which("todoist")
     check(
-        "~/.claude/scripts/todoist exists",
-        wrapper_path.exists(),
-        "Run: scripts/install.sh" if not wrapper_path.exists() else ""
-    )
-    if wrapper_path.exists():
-        check(
-            "wrapper is executable",
-            wrapper_path.stat().st_mode & 0o111,
-            "Run: chmod +x ~/.claude/scripts/todoist"
-        )
-
-    # PATH
-    print("\n[PATH]")
-    scripts_in_path = any(
-        "/.claude/scripts" in p for p in os.environ.get("PATH", "").split(":")
-    )
-    check(
-        "~/.claude/scripts in PATH",
-        scripts_in_path,
-        'Add to ~/.zshrc: export PATH="$HOME/.claude/scripts:$PATH"'
+        "todoist on PATH",
+        todoist_on_path is not None,
+        "Install via: uv tool install ~/Repos/todoist-gtd" if not todoist_on_path else ""
     )
 
     # Auth

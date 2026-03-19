@@ -19,20 +19,18 @@ todoist add "Jon Watts to share draft..." --project "@Wait"
 # Error: command not found: todoist
 ```
 
-**Workaround:** Used full path `~/.claude/scripts/todoist`
+**Workaround:** Used full path `todoist` (now installed via `uv tool install`)
 
-**Root cause:** The skill doc says to add `~/.claude/scripts` to PATH in `.zshrc`, but Claude's Bash environment doesn't always inherit this. The skill was loaded mid-session.
+**Root cause:** The skill doc previously referenced `~/.claude/scripts/todoist`, but the CLI is now installed as a standard tool on PATH via `uv tool install`.
 
-**Recommendation:** Either:
-- Always use absolute path in skill examples: `~/.claude/scripts/todoist`
-- Or add a pre-flight check that verifies PATH includes the scripts dir
+**Recommendation:** Verify `todoist` is on PATH via `todoist doctor`.
 
 ### 2. --section flag throws 400 error
 
 Attempted to add tasks to @Work with a section:
 
 ```bash
-~/.claude/scripts/todoist add "Conversation with GB..." --project "@Work" --section "Later"
+todoist add "Conversation with GB..." --project "@Work" --section "Later"
 # Error: 400 Client Error: Bad Request
 ```
 
@@ -125,12 +123,9 @@ todoist add-from-file /tmp/actions.md
 
 Would parse markdown sections and add appropriately. Lower priority but would clean up the workflow.
 
-### 4. Fix or document PATH requirement
+### 4. ~~Fix or document PATH requirement~~ (Resolved)
 
-Either:
-- Update skill doc to use absolute paths in all examples
-- Add wrapper that sources user's shell profile
-- Document that `todoist doctor` should be run at session start
+CLI is now installed via `uv tool install`, placing `todoist` on PATH. `todoist doctor` checks this.
 
 ## Test Cases to Add
 
