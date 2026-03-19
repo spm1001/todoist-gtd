@@ -1,6 +1,6 @@
 [project]
 name = "todoist-gtd"
-version = "0.2.0"
+version = "0.4.0"
 description = "Todoist CLI with GTD coaching semantics"
 requires-python = ">=3.11"
 dependencies = [
