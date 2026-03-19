@@ -7,6 +7,7 @@ description: >
   detection. Triggers on 'clean up outcomes', 'team priorities', 'is this a good outcome',
   'weekly review', 'am I overcommitting', 'check my patterns', 'should I take this on',
   'I said yes to', 'scope creep', 'freedom score', or ANY Todoist-related task. (user)
+allowed-tools: ["Bash(todoist:*)", Read, AskUserQuestion]
 ---
 
 # Todoist GTD
