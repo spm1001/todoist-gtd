@@ -5,7 +5,7 @@ Portable secrets management for Todoist CLI.
 Supports multiple backends:
 1. Environment variable (TODOIST_API_KEY) - works everywhere
 2. macOS Keychain - native Mac support
-3. File-based fallback (~/.todoist-token) - last resort
+3. File-based fallback (plugin data dir, or ~/.todoist-token legacy) - last resort
 
 Usage:
     from todoist_gtd.token_store import get_token, store_token
@@ -22,7 +22,18 @@ from pathlib import Path
 from typing import Optional
 
 KEYCHAIN_SERVICE = "todoist-api-key"
-TOKEN_FILE = Path.home() / ".todoist-token"
+
+# Plugin data directory — version-stable, survives plugin cache upgrades.
+# Claude Code creates ~/.claude/plugins/data/{name}-{publisher}/ automatically.
+_PLUGIN_DATA_DIR = Path.home() / ".claude" / "plugins" / "data" / "todoist-gtd-batterie-de-savoir"
+_LEGACY_TOKEN_FILE = Path.home() / ".todoist-token"
+
+# Prefer plugin data dir (version-stable) over legacy home file.
+TOKEN_FILE = (
+    _PLUGIN_DATA_DIR / "token"
+    if _PLUGIN_DATA_DIR.is_dir()
+    else _LEGACY_TOKEN_FILE
+)
 
 
 def _has_keychain() -> bool:
@@ -61,9 +72,17 @@ def _get_from_keychain() -> Optional[str]:
 
 
 def _get_from_file() -> Optional[str]:
-    """Get token from file."""
+    """Get token from file, migrating from legacy location if needed."""
     if TOKEN_FILE.exists():
         return TOKEN_FILE.read_text().strip()
+    # Migrate from ~/.todoist-token to plugin data dir on first read
+    if TOKEN_FILE != _LEGACY_TOKEN_FILE and _LEGACY_TOKEN_FILE.exists():
+        token = _LEGACY_TOKEN_FILE.read_text().strip()
+        if token:
+            TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+            TOKEN_FILE.write_text(token + "\n")
+            TOKEN_FILE.chmod(0o600)
+            return token
     return None
 
 
@@ -104,6 +123,7 @@ def _store_to_keychain(token: str) -> bool:
 def _store_to_file(token: str) -> bool:
     """Store token in file with restricted permissions."""
     try:
+        TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
         TOKEN_FILE.write_text(token + "\n")
         TOKEN_FILE.chmod(0o600)
         return True
