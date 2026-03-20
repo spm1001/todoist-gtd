@@ -6,9 +6,9 @@ Usage:
     todoist <command> [options]
 
 Commands:
-    auth                Authenticate with Todoist (OAuth flow)
+    auth                Show setup instructions
+    auth --token TOKEN  Store a personal API token
     auth --status       Check authentication status
-    auth --manual       Use manual mode (for SSH)
     projects            List all projects
     sections            List sections (--project or --project-id to filter)
     tasks               List tasks with comments inline
@@ -418,15 +418,19 @@ def cmd_get_collaborators(args):
 
 def cmd_auth(args):
     """Authenticate with Todoist."""
-    from todoist_gtd.auth import authenticate, get_auth_status
+    from todoist_gtd.auth import get_auth_status, store_api_token, print_setup_instructions
 
     if args.status:
         status = get_auth_status()
         print(status["message"])
         sys.exit(0 if status["authenticated"] else 1)
 
-    success = authenticate(manual=args.manual, code=args.code)
-    sys.exit(0 if success else 1)
+    if args.token:
+        success = store_api_token(args.token)
+        sys.exit(0 if success else 1)
+
+    # No flags: print setup instructions
+    print_setup_instructions()
 
 
 def cmd_doctor(args):
@@ -539,8 +543,7 @@ def main():
 
     # Auth command
     p = subparsers.add_parser("auth", help="Authenticate with Todoist")
-    p.add_argument("--manual", action="store_true", help="Use manual mode (paste redirect URL)")
-    p.add_argument("--code", help="Authorization code or redirect URL (for non-interactive manual mode)")
+    p.add_argument("--token", help="API token to store (get from Todoist settings)")
     p.add_argument("--status", action="store_true", help="Check authentication status")
 
     # Natural command names (primary)

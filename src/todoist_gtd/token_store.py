@@ -159,7 +159,7 @@ def get_token() -> str:
     if _has_keychain():
         print('  macOS Keychain: security add-generic-password -a "$USER" -s "todoist-api-key" -w "TOKEN"', file=sys.stderr)
     print('  Environment var: export TODOIST_API_KEY="TOKEN" in ~/.bashrc or ~/.secrets', file=sys.stderr)
-    print("\nOr run `todoist auth` to connect via OAuth.", file=sys.stderr)
+    print("\nOr run `todoist auth` for setup instructions.", file=sys.stderr)
     sys.exit(1)
 
 
