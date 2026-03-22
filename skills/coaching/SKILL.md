@@ -109,7 +109,7 @@ CLI shows ALL tasks by default (no hidden filtering). For full auth options, err
 ### Outcomes as Sections (not tasks!)
 
 ```
-Desired Outcomes Q4 (project)
+Desired Outcomes Q2 (project)
   ├── Made more of the LDC data usable... (section = outcome)
   │     └── [tasks under this section]
   ├── Laid the groundwork for 10x... (section = outcome)
@@ -122,11 +122,12 @@ Desired Outcomes Q4 (project)
 
 | Project | Purpose |
 |---------|---------|
-| `@Work` | Active work (Now/Later sections) |
-| `Desired Outcomes Q4` / `H1` | Quarterly/half outcomes |
-| `Areas of Focus` | AoF categories as sections |
-| `@Claude` | Async inbox for Claude sessions (all contexts) |
-| `Someday/Maybe` | Backlog |
+| `@Work` | Active next actions (personal GTD context) |
+| `Desired Outcomes Q2` | Current quarter outcomes (MIT shared) |
+| `Desired Outcomes 2026` | Annual outcomes (MIT shared) |
+| `Areas of Focus` | AoF categories as sections (MIT shared) |
+| `@Claude` | Async inbox for Claude sessions |
+| `@Someday` | Backlog (personal) |
 | `@Wait` | Waiting for others |
 
 **⚠️ GTD contexts (@Wait, @Claude, @Ping, @Time) are PROJECTS, not labels.** Query with `--project "@Wait"`, not `--label "waiting-for"`.
@@ -139,18 +140,66 @@ Desired Outcomes Q4 (project)
 
 | Type | Projects | Visibility | Use For |
 |------|----------|------------|---------|
-| **Personal** | `Personal`, `@Home`, `Checklists/*` | Only user | Private outcomes, home tasks, personal reference |
-| **MIT Shared** | `Desired Outcomes Q4`, `Desired Outcomes H1`, `Areas of Focus`, `@Work`, `HH:Lift`, `LDC:*`, `Clean Rooms`, `Technical Documentation` | Team can see | Work outcomes, team tasks, product boards |
-| **GTD System** | `@Wait`, `@Ping`, `@Time`, `@Claude`, `Someday/Maybe` | Only user | GTD contexts (not outcomes) |
+| **Personal** | `Personal`, `@Home`, `Checklists/*`, `Objective raw material` | Only user | Private outcomes, home tasks, personal reference |
+| **MIT Shared** | `Desired Outcomes Q2`, `Desired Outcomes 2026`, `Areas of Focus`, `Team Inbox`, `Someday/Maybe` (team) | Team can see | Work outcomes, team tasks |
+| **GTD System** | `@Work`, `@Wait`, `@Ping`, `@Timed`, `@Claude`, `@Someday`, `@Home` | Only user | GTD contexts (not outcomes) |
 
 **⚠️ Critical distinction:**
 - **`Personal` project** has a "Desired Outcomes" *section* → **private** personal outcomes
-- **`Desired Outcomes Q4/H1`** are *projects* → **MIT shared** work outcomes
+- **`Desired Outcomes Q2`** is a *project* in the MIT shared workspace → **team** work outcomes
+- **`@Work`** is a personal GTD context for next actions, NOT a shared project
 
 **When user says "add a personal outcome"** → `Personal` project, "Desired Outcomes" section
-**When user says "add a work outcome"** → `Desired Outcomes Q4` or `H1` project
+**When user says "add a work outcome"** → `Desired Outcomes Q2` or `2026` project
 
 **The user also has a separate Team Todoist account** (not accessible via this CLI) for Tier 1 leadership priorities. When user mentions "team account", that's inaccessible here.
+
+### MIT Team Members
+
+The MIT shared workspace has 8 collaborators. Use `todoist collaborators --project-id "<id>"` to get the canonical list.
+
+| Name | Todoist ID | Email (Todoist) |
+|------|-----------|-----------------|
+| Sameer Modha | 2054816 | todoist.sameer@planetmodha.com |
+| Lauren Thomas | 56446878 | lauren.thomas2@itv.com |
+| Ella Collis | 55347117 | ella.collis@itv.com |
+| Judi Hu | 56443712 | judi.yin.hu@gmail.com |
+| Ellie Martin | 57537553 | ellie.martin@itv.com |
+| Stefano Figoni | 55347230 | stefano.figoni@itv.com |
+| Alex Green | 50438623 | alexander.green@itv.com |
+| Rupert Coghlan | 45273151 | r.coghlan@gmail.com |
+
+Note: Judi and Rupert use personal emails on Todoist, not ITV emails.
+
+### Assignee Filtering
+
+**⚠️ CRITICAL: Shared projects contain tasks assigned to ALL team members. Always filter by assignee when looking at Sameer's work.**
+
+```bash
+# Sameer's tasks only (use "me" — works because CLI is authenticated as Sameer)
+todoist tasks --project "Desired Outcomes Q2" --assignee "Sameer Modha"
+todoist filter "assigned to: me"
+todoist filter "assigned to: me & today"
+
+# Specific team member (use full name as shown in collaborators)
+todoist tasks --project "Desired Outcomes Q2" --assignee "Lauren Thomas"
+todoist filter "assigned to: Lauren Thomas"
+
+# Unassigned tasks (need triage — no CLI flag, pipe through python)
+todoist tasks --project "PROJECT" 2>/dev/null > /tmp/tasks.json && python3 << 'PYEOF'
+import json
+with open("/tmp/tasks.json") as f:
+    data = json.load(f)
+for t in data:
+    if not t.get("assignee_id"):
+        print(f"  UNASSIGNED: {t['content'][:80]}  id={t['id']}")
+PYEOF
+```
+
+**Common mistakes:**
+- Querying `Desired Outcomes Q2` without `--assignee` returns ALL 74 team tasks, not just Sameer's 17
+- `todoist filter "assigned to: Sameer"` returns 0 — must use full name "Sameer Modha" or "me"
+- `--assignee` requires `--project` or `--project-id` — it's a client-side filter, not API-level
 
 ## Terminology Disambiguation
 
@@ -158,7 +207,7 @@ Desired Outcomes Q4 (project)
 
 | Context | Meaning | Example |
 |---------|---------|---------|
-| Todoist | Container for tasks | `Desired Outcomes Q4` project |
+| Todoist | Container for tasks | `Desired Outcomes Q2` project |
 | GTD Tier 3 | Multi-step outcome | "Launch Panel+ v2" |
 | Business | Work initiative | "The clean rooms project" |
 
@@ -169,7 +218,7 @@ Desired Outcomes Q4 (project)
 | Tier | What | Where in Todoist | Managed By |
 |------|------|------------------|------------|
 | **Tier 1** | Team Priorities | Team Todoist (not accessible here) | Leadership |
-| **Tier 2** | Individual Outcomes | Sections in `Desired Outcomes Q4` | the user |
+| **Tier 2** | Individual Outcomes | Sections in `Desired Outcomes Q2` | the user |
 | **Tier 3** | Projects & Actions | Tasks under outcome sections | the user |
 
 ### Tier 2 vs Tier 3: The Critical Distinction
@@ -199,7 +248,7 @@ Desired Outcomes Q4 (project)
 **All commands return JSON.** Key patterns:
 
 ```bash
-todoist sections --project "Desired Outcomes Q4"    # Outcomes (sections, not tasks!)
+todoist sections --project "Desired Outcomes Q2"    # Outcomes (sections, not tasks!)
 todoist tasks --section-id "<outcome-id>"            # Tasks under an outcome
 todoist tasks --project "@Wait" --older-than 30d     # Stale waiting-fors
 todoist filter "assigned to: Alex"                   # Filter syntax
@@ -219,7 +268,7 @@ todoist tasks --project "@Work" --include-section-name  # Tasks with section con
 2. Which Team Priority does it serve?
 3. What does success look like?
 
-**Outcome goes in:** A section in `Desired Outcomes Q4/H1`
+**Outcome goes in:** A section in `Desired Outcomes Q2/H1`
 **Tasks go under:** That outcome section
 
 ```bash
@@ -385,7 +434,7 @@ Surface: "Alex has X outcomes, Y waiting-fors. [Summary of each]"
 | Query | CLI Command |
 |-------|-------------|
 | All projects | `todoist projects` |
-| All outcomes | `todoist sections --project "Desired Outcomes Q1"` |
+| All outcomes | `todoist sections --project "Desired Outcomes Q2"` |
 | Tasks under outcome | `todoist tasks --section-id "<outcome-id>"` |
 | Tasks with section names | `todoist tasks --project "@Work" --include-section-name` |
 | Person's work | `todoist tasks --project "X" --assignee "Name"` |
@@ -401,7 +450,7 @@ Surface: "Alex has X outcomes, Y waiting-fors. [Summary of each]"
 
 | Operation | CLI Command |
 |-----------|-------------|
-| Create outcome | `todoist add-section "name" --project "Desired Outcomes Q1"` |
+| Create outcome | `todoist add-section "name" --project "Desired Outcomes Q2"` |
 | Create task | `todoist add "content" --project "@Work" --section "Now"` |
 | Complete task | `todoist done "<task-id>"` |
 | Rename task | `todoist update "<task-id>" --content "new name"` |
