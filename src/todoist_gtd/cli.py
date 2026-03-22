@@ -307,8 +307,27 @@ def cmd_update_task(args):
             resolve_project_id = task.project_id
         section_id = resolve_section(api, resolve_project_id, args.section)
 
+    # Resolve assignee name to ID if provided
+    assignee_id = None
+    if args.assignee:
+        # Get task's project to look up collaborators
+        try:
+            task = api.get_task(args.id)
+        except Exception as e:
+            handle_task_not_found(e, args.id)
+        collabs = collect_paginated(api.get_collaborators(task.project_id))
+        match = [c for c in collabs if c.name.lower() == args.assignee.lower()]
+        if not match:
+            # Try partial match
+            match = [c for c in collabs if args.assignee.lower() in c.name.lower()]
+        if not match:
+            names = [c.name for c in collabs]
+            print(f"Error: No collaborator matching '{args.assignee}'. Available: {', '.join(names)}", file=sys.stderr)
+            sys.exit(1)
+        assignee_id = match[0].id
+
     # Separate update fields from move fields
-    # update_task() handles: content, description, labels, priority, due
+    # update_task() handles: content, description, labels, priority, due, assignee_id
     # move_task() handles: project_id, section_id, parent_id
     update_kwargs = {}
     if args.content:
@@ -321,6 +340,8 @@ def cmd_update_task(args):
         update_kwargs['due_string'] = args.due
     if args.labels:
         update_kwargs['labels'] = args.labels.split(",")
+    if assignee_id is not None:
+        update_kwargs['assignee_id'] = assignee_id
 
     move_kwargs = {}
     if project_id:
@@ -607,6 +628,7 @@ def main():
     p.add_argument("--labels", help="New comma-separated labels (replaces existing)")
     p.add_argument("--priority", type=int, choices=[1, 2, 3, 4], help="Priority (1=normal, 4=urgent)")
     p.add_argument("--due", help="Due date in natural language")
+    p.add_argument("--assignee", help="Reassign to collaborator by name (e.g., 'Lauren Thomas')")
 
     p = subparsers.add_parser("comments", help="Get comments")
     p.add_argument("--task-id", help="Task ID")
