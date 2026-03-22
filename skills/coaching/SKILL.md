@@ -67,7 +67,7 @@ MCP-free Todoist integration using the official Python SDK (v1 API). Adds semant
 
 Weekly review triggers a **three-phase workflow:**
 
-1. **Filing** — Invoke **filing** skill first to clear cleanup zones
+1. **Filing** — Process and file from cleanup zones. Check project CLAUDE.md for zone paths and Drive structure. Clear digital clutter before strategic reflection.
 2. **Outcomes Review** — This skill: outcome health, staleness, Tier 2 vs 3 quality
 3. **Pattern Reflection** — This skill: freedom score, pattern interrupts
 
@@ -130,6 +130,8 @@ Desired Outcomes Q4 (project)
 | `@Wait` | Waiting for others |
 
 **⚠️ GTD contexts (@Wait, @Claude, @Ping, @Time) are PROJECTS, not labels.** Query with `--project "@Wait"`, not `--label "waiting-for"`.
+
+**⚠️ Always filter by assignee on shared projects.** Desired Outcomes and Areas of Focus are MIT-shared — without `--assignee "Full Name"` you get the whole team's items. Use `todoist filter "assigned to: me"` for the user, or `--assignee "Full Name"` (full name required, not partial).
 
 ### Personal vs MIT Shared Projects
 
@@ -271,6 +273,29 @@ Good (concrete, physical):
 
 If the answer isn't immediately obvious from the task title, it's not a next action - it's a project or outcome that needs breaking down.
 
+### Entrusting Pattern (Delegation)
+
+When delegating an outcome to someone:
+
+1. **Create a structured delegation doc** with these headings:
+   - What's the desired outcome?
+   - Why do you want that outcome?
+   - What information/resources are useful and needed?
+   - At what stages would I like to be updated?
+   - When does it need to be achieved by?
+   - Response options (ask for clarity / accept / decline / reflect / propose alternative)
+2. **Link the doc** in the Todoist item description
+3. **Create a @Ping item**: "Entrust X to Y" with the doc link
+4. **Outcome stays assigned to you** until the conversation happens
+
+**@Ping vs @Wait:** @Ping = things to raise with people (follow-ups, discussion points, entrusting). @Wait = things others owe you that you're tracking.
+
+### Cross-Workspace Moves
+
+**Moving tasks between shared and personal workspaces is forbidden** (returns 403). If you need to move an item from a shared project (e.g. MIT Desired Outcomes) to a personal project (e.g. @Someday), the workaround is delete + recreate. This loses comments and history.
+
+**Reassignment works:** `todoist update ID --assignee "Full Name"` resolves the name via the project's collaborator list.
+
 ### Anti-Patterns
 
 | Bad Practice | Why Wrong | Better |
@@ -279,6 +304,9 @@ If the answer isn't immediately obvious from the task title, it's not a next act
 | Tier 3 project as outcome | Inflates outcome count | Challenge: "Is this activity or achievement?" |
 | Outcome without Team Priority | Orphan work | Ask: "Which priority does this serve?" |
 | Completing without reflection | Loses learning | Prompt for resolution notes |
+| Joint ownership ("work with X to...") | No clear driver, item drifts | One owner per outcome. Others contribute, one person drives. |
+| No next action on active outcome | Outcome stalls invisibly | Every active outcome needs at least one concrete next action in @Work |
+| Querying shared projects without assignee filter | Returns whole team's work, not yours | Always use `--assignee "Full Name"` or `filter "assigned to: me"` |
 
 ## Pattern Intervention Triggers
 
@@ -345,7 +373,7 @@ Surface: "Alex has X outcomes, Y waiting-fors. [Summary of each]"
 ## Integration with Other Skills
 
 **Coordinates with:**
-- **filing** - Weekly review starts with filing cleanup
+- **Project CLAUDE.md** — filing zones and Drive structure live in per-project CLAUDE.md files. Check these during weekly review Phase 1.
 - **google-workspace** - For document research related to outcomes
 
 **Pattern:** This skill combines data (CLI queries) with judgment (pattern detection, coaching).

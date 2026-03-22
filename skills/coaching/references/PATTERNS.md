@@ -34,9 +34,9 @@ Primary metric for whether the GTD system is working. Low score = overcommitted,
 "Weekly review" triggers a **three-phase workflow:**
 
 ### Phase 1: Filing
-Invoke **filing** skill first:
-- Tidy cleanup zones (Downloads, iCloud, Desktop, iA Writer, Drive inbox)
-- Clear the physical/digital clutter before strategic reflection
+Process and file from cleanup zones. Check project CLAUDE.md for zone paths and Drive structure.
+- Clear digital clutter before strategic reflection
+- **Clarify before organizing** — read content, extract actions, THEN move files
 
 ### Phase 2: Outcomes Review
 This skill (todoist-gtd):
@@ -167,6 +167,49 @@ When extracting actions from meeting notes, documents, or other sources:
 - Processing email forwards or document reviews
 - Any extraction that produces 5+ items
 - When names or context might be wrong
+
+## Clarify and Organize (GTD Five-Stage Workflow)
+
+GTD's five stages: **Capture → Clarify → Organize → Reflect → Engage**. The step most often skipped is **Clarify** — deciding what each item actually is and whether it's actionable, before organizing it into the right place.
+
+Reference: https://facilethings.com/blog/en/basics-workflow
+
+### Clarify (before organizing anything)
+
+For each item in an inbox or cleanup zone:
+
+1. **What is it?** — meeting notes, quick capture, voice transcript, PDF, screenshot
+2. **Is it actionable?**
+   - **No** → Trash, Someday/Maybe, or Reference Material
+   - **Yes** → extract Next Actions, Waiting Fors, Calendar items
+
+### Processing Checklist (Meeting Notes)
+
+Before filing ANY meeting note:
+- [ ] Read the content — don't just look at the title
+- [ ] Extract actions (mine) — concrete next steps → @Work or @Ping
+- [ ] Extract waiting-fors — `NAME to TASK` format → @Wait
+- [ ] Note calendar items
+- [ ] Quality check: empty → delete, misnamed → rename
+- [ ] THEN move to destination
+
+### Archive vs Reference
+
+**The test:** "Will I search for this to USE it or REMEMBER it?"
+
+| Answer | Location | Examples |
+|--------|----------|----------|
+| **USE it** | Reference / Resources | Methodology docs, templates, how-to guides |
+| **REMEMBER it** | Archive | Completed project artifacts, old meeting notes |
+
+### Anti-patterns
+
+| Pattern | Problem | Fix |
+|---------|---------|-----|
+| Organizing without clarifying | Actions lost, waiting-fors vanish | Read and extract before moving |
+| Bulk move meeting notes | Buried actions | Use Sublime Loop (above) to batch-extract |
+| Skipping running/standing docs | Miss recurring meeting actions | Check standing docs during weekly review |
+| Keeping things "just in case" | Folders bloat | Delete liberally — most things don't need keeping |
 
 ## Integration with Todoist Data
 
