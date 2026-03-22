@@ -201,6 +201,20 @@ PYEOF
 - `todoist filter "assigned to: Sameer"` returns 0 — must use full name "Sameer Modha" or "me"
 - `--assignee` requires `--project` or `--project-id` — it's a client-side filter, not API-level
 
+**Cross-workspace move restriction:**
+Moving a task between workspaces (e.g. MIT shared → personal projects) returns **403 Forbidden**. Todoist does not allow cross-workspace moves via the API. The workaround is delete + re-create:
+
+```bash
+# Can't do this (403):
+todoist update "<task-id>" --project "@Someday"  # personal project
+
+# Instead: note the content, delete, re-create
+todoist delete "<task-id>"
+todoist add "task content" --project "@Someday"
+```
+
+This loses comments and history — note anything important before deleting.
+
 ## Terminology Disambiguation
 
 **"Project" has 3 meanings:**
