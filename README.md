@@ -3,7 +3,7 @@
 > **Status:** Beta — actively developed
 > **Works with:** Claude Code, standalone CLI
 > **Install:** via batterie-de-savoir marketplace
-> **Requires:** Python 3.11+, Todoist account + OAuth app
+> **Requires:** Python 3.11+, Todoist account + API token
 
 Todoist CLI with GTD coaching for Claude Code.
 
@@ -18,49 +18,23 @@ Install via batterie-de-savoir marketplace:
 /plugin install todoist-gtd
 ```
 
-Then set up OAuth (see "OAuth Setup" below) and verify:
+Then set up authentication and verify:
 
 ```bash
-todoist auth
-todoist doctor
+todoist auth                    # Prints setup instructions
+todoist auth --token YOUR_TOKEN # Store your API token
+todoist doctor                  # Verify everything works
 ```
 
-## OAuth Setup
+## Authentication
 
-This CLI uses OAuth to access your Todoist. You need to register your own app:
-
-1. Go to [developer.todoist.com](https://developer.todoist.com)
-2. Click "Create a new app"
-3. Fill in:
-   - **App name:** anything (e.g., "My Claude Todoist")
-   - **App service URL:** `http://localhost`
-   - **OAuth redirect URL:** `http://localhost:8080/callback`
-4. Copy the **Client ID** and **Client Secret**
-5. Create your credentials file:
+Get your API token from [Todoist developer settings](https://app.todoist.com/app/settings/integrations/developer), then store it:
 
 ```bash
-cd ~/Repos/todoist-gtd/scripts
-cp client_credentials.json.template client_credentials.json
-# Edit client_credentials.json with your client_id and client_secret
+todoist auth --token YOUR_API_TOKEN
 ```
 
-6. Run auth:
-
-```bash
-todoist auth
-```
-
-Browser opens, you authorize, done. Token stored in macOS Keychain.
-
-### Manual Auth (SSH/headless)
-
-If you can't open a browser automatically:
-
-```bash
-todoist auth --manual
-```
-
-Prints a URL. Open it, authorize, copy the failed redirect URL back.
+Token is stored in macOS Keychain (if available) or in a file with restricted permissions on Linux.
 
 ## CLI Usage
 
@@ -119,7 +93,7 @@ Adapt the project names in SKILL.md to match your structure.
 todoist-gtd/
 ├── src/todoist_gtd/      # Python package
 │   ├── cli.py            # Main CLI (todoist command)
-│   ├── auth.py           # OAuth flow
+│   ├── auth.py           # Token-based authentication
 │   ├── token_store.py    # Keychain integration
 │   ├── common.py         # Shared utilities
 │   └── flatten.py        # Subtask flattening (todoist-flatten)
@@ -134,22 +108,12 @@ todoist-gtd/
 
 ### Auth Failures
 
-**"OAuth not configured"**
-- Missing `client_credentials.json`. Create it from the template with your Todoist app credentials.
-
-**"Port 8080 is in use"**
-- Another process is using port 8080, needed for OAuth callback.
-- Fix: Free the port (`lsof -i :8080` to find it) or use `todoist auth --manual`.
-
 **"Token revoked or expired"**
-- Re-run `todoist auth` to re-authenticate.
+- Re-run `todoist auth --token TOKEN` with a fresh token from Todoist settings.
 
-**"Keychain is locked"**
+**"Keychain is locked"** (macOS)
 - Unlock your macOS Keychain (Keychain Access app or `security unlock-keychain`).
 - Or use `TODOIST_API_KEY` environment variable instead.
-
-**"Keychain access denied"**
-- Terminal needs Keychain access. Check System Preferences > Privacy > Keychain.
 
 ### Network Errors
 
@@ -176,7 +140,7 @@ todoist-gtd/
 If you're joining as a contributor:
 
 1. **Clone and install** as above
-2. **Get OAuth credentials** — ask the repo owner for shared credentials, or register your own app
+2. **Get your own API token** from [Todoist developer settings](https://app.todoist.com/app/settings/integrations/developer)
 3. **Read CLAUDE.md** — repo conventions and contribution guidelines
 4. **Check for open work** — `bon list --ready` shows available work
 
@@ -187,19 +151,9 @@ When using Claude to contribute:
 - Issue/PR templates appear at point of action — guidance when you need it
 - See CONTRIBUTING.md for detailed guidelines
 
-### Sharing Credentials
-
-For teams, you can share a single OAuth app:
-1. Owner registers app at developer.todoist.com
-2. Share `client_credentials.json` securely (not via git)
-3. Each user runs `todoist auth` with the shared credentials
-
-Each user's token is stored in their own Keychain — credentials are shared, tokens are not.
-
 ## Security
 
-- **Tokens** stored in macOS Keychain (not in files)
-- **Client credentials** in local file (gitignored) — you register your own app
+- **Tokens** stored in macOS Keychain or in a restricted-permissions file on Linux
 - No secrets in this repo
 
 ## License

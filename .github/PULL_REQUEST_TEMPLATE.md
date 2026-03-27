@@ -10,7 +10,7 @@
 
 <!-- How did you verify this works? -->
 
-- [ ] `./scripts/verify.sh` passes
+- [ ] `todoist doctor` passes
 - [ ] Tested manually: <!-- describe -->
 
 ## Checklist

@@ -33,13 +33,13 @@ If `CLAUDE_PLUGIN_ROOT` is set, use that instead: `uv tool install "${CLAUDE_PLU
 todoist doctor
 ```
 
-If doctor reports no token, run `todoist auth`. This opens the Todoist settings page, prompts for the API token, and stores it (Keychain on Mac, `~/.todoist-token` on Linux). No manual env vars or shell profile edits needed.
+If doctor reports no token, run `todoist auth` for setup instructions, then `todoist auth --token TOKEN` to store it (Keychain on Mac, plugin data dir on Linux). No manual env vars or shell profile edits needed.
 
 **NEVER echo the API token back to the user.** The token is a secret.
 
 ## Overview
 
-MCP-free Todoist integration using the official Python SDK (v1 API). Adds semantic understanding of the user's GTD structure and outcome quality coaching on top of the CLI's data access.
+MCP-free Todoist integration using the official Python SDK (v4, httpx-based). Adds semantic understanding of the user's GTD structure and outcome quality coaching on top of the CLI's data access.
 
 **Core insight:** The CLI provides data. This skill provides meaning.
 
@@ -97,7 +97,7 @@ todoist doctor
 
 ```bash
 todoist doctor    # Check setup
-todoist auth      # OAuth setup (one-time)
+todoist auth      # Setup instructions (one-time)
 ```
 
 CLI shows ALL tasks by default (no hidden filtering). For full auth options, error handling, and troubleshooting: see [references/CLI_REFERENCE.md](references/CLI_REFERENCE.md#cli-setup)
