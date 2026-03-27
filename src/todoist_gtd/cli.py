@@ -487,7 +487,7 @@ def cmd_doctor(args):
 
     # Dependencies
     print("\n[Dependencies]")
-    for pkg in ["todoist_api_python", "requests"]:
+    for pkg in ["todoist_api_python", "httpx"]:
         try:
             __import__(pkg)
             check(pkg, True)

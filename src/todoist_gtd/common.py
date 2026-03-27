@@ -24,11 +24,10 @@ MAX_RETRIES = 3
 
 def get_api():
     """
-    Get authenticated TodoistAPI instance with timeout.
+    Get authenticated TodoistAPI instance with timeout and retry.
 
-    Uses requests.Session with timeout adapter for reliability.
-    Note: Don't use httpx - SDK expects requests.Session and breaks with httpx
-    (complete_task fails with 'Response' has no 'ok').
+    todoist-api-python v4 switched from requests to httpx internally.
+    We pass an httpx.Client with timeout and retry transport.
     """
     global TodoistAPI
     if TodoistAPI is None:
@@ -41,34 +40,15 @@ def get_api():
             sys.exit(1)
 
     from todoist_gtd.token_store import get_token
-    import requests
-    from requests.adapters import HTTPAdapter
-    from urllib3.util.retry import Retry
+    import httpx
 
     token = get_token()
 
-    # Configure session with timeout and retry
-    session = requests.Session()
-    retry_strategy = Retry(
-        total=MAX_RETRIES,
-        backoff_factor=1,
-        status_forcelist=[429, 500, 502, 503, 504],
-    )
-    adapter = HTTPAdapter(max_retries=retry_strategy)
-    session.mount("https://", adapter)
+    # Configure httpx client with timeout and retry (v4 SDK uses httpx)
+    transport = httpx.HTTPTransport(retries=MAX_RETRIES)
+    client = httpx.Client(timeout=DEFAULT_TIMEOUT, transport=transport)
 
-    # Set default timeout for all requests
-    session.request = _timeout_wrapper(session.request, DEFAULT_TIMEOUT)
-
-    return TodoistAPI(token, session=session)
-
-
-def _timeout_wrapper(func: Callable, timeout: int) -> Callable:
-    """Wrap a request function to add default timeout."""
-    def wrapper(*args, **kwargs):
-        kwargs.setdefault('timeout', timeout)
-        return func(*args, **kwargs)
-    return wrapper
+    return TodoistAPI(token, client=client)
 
 
 def collect_paginated(iterator) -> list:
