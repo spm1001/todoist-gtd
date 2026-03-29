@@ -161,11 +161,8 @@ def cmd_get_tasks(args):
         # Resolve assignee_id to human-readable name
         aid = task_dict.get('assignee_id')
         task_dict['assignee_name'] = assignee_map.get(aid) if aid else None
-        if getattr(t, 'comment_count', 0) > 0:
-            comments = collect_paginated(api.get_comments(task_id=t.id))
-            task_dict['comments'] = [to_dict(c) for c in comments]
-        else:
-            task_dict['comments'] = []
+        comments = collect_paginated(api.get_comments(task_id=t.id))
+        task_dict['comments'] = [to_dict(c) for c in comments]
         enriched.append(task_dict)
 
     # Optionally include section names (requires extra API call)
@@ -197,11 +194,8 @@ def cmd_get_task(args):
         task_dict['assignee_name'] = assignee_map.get(aid)
     else:
         task_dict['assignee_name'] = None
-    if getattr(task, 'comment_count', 0) > 0:
-        comments = collect_paginated(api.get_comments(task_id=args.id))
-        task_dict['comments'] = [to_dict(c) for c in comments]
-    else:
-        task_dict['comments'] = []
+    comments = collect_paginated(api.get_comments(task_id=args.id))
+    task_dict['comments'] = [to_dict(c) for c in comments]
     print(json.dumps(task_dict, indent=2, default=str))
 
 
