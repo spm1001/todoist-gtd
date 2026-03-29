@@ -103,6 +103,14 @@ def cmd_get_tasks(args):
         label=args.label
     ))
 
+    # Fetch collaborators once for shared project detection, filtering, and enrichment
+    collabs = []
+    assignee_map = {}
+    if project_id:
+        collabs = collect_paginated(api.get_collaborators(project_id))
+        if collabs:
+            assignee_map = {c.id: c.name for c in collabs}
+
     # Assignee filtering: explicit --assignee, or auto-filter on shared projects
     if args.assignee:
         if not project_id:
@@ -110,17 +118,15 @@ def cmd_get_tasks(args):
             sys.exit(1)
         assignee_id = resolve_assignee(api, project_id, args.assignee)
         tasks = [t for t in tasks if getattr(t, 'assignee_id', None) == assignee_id]
-    elif project_id and not getattr(args, 'team', False):
+    elif collabs and not getattr(args, 'team', False):
         # Auto-filter shared projects to current user's tasks
-        collabs = collect_paginated(api.get_collaborators(project_id))
-        if collabs:
-            user = get_current_user()
-            my_id = user['id']
-            my_tasks = [t for t in tasks if getattr(t, 'assignee_id', None) in (my_id, None)]
-            excluded = len(tasks) - len(my_tasks)
-            if excluded > 0:
-                print(f"Showing {len(my_tasks)} of {len(tasks)} tasks (filtered to {user['full_name']}). Use --team for all.", file=sys.stderr)
-            tasks = my_tasks
+        user = get_current_user()
+        my_id = user['id']
+        my_tasks = [t for t in tasks if getattr(t, 'assignee_id', None) in (my_id, None)]
+        excluded = len(tasks) - len(my_tasks)
+        if excluded > 0:
+            print(f"Showing {len(my_tasks)} of {len(tasks)} tasks (filtered to {user['full_name']}). Use --team for all.", file=sys.stderr)
+        tasks = my_tasks
 
     # Filter by creation date if provided (client-side filter)
     if args.created_before and args.older_than:
@@ -146,13 +152,6 @@ def cmd_get_tasks(args):
             cutoff = datetime.fromisoformat(args.created_before + "T23:59:59")
 
         tasks = [t for t in tasks if get_created(t) < cutoff]
-
-    # Build assignee lookup if tasks are in a shared project
-    assignee_map = {}
-    if project_id:
-        collabs = collect_paginated(api.get_collaborators(project_id))
-        if collabs:
-            assignee_map = {c.id: c.name for c in collabs}
 
     # Enrich tasks with comments and assignee names
     enriched = []
@@ -578,7 +577,7 @@ def cmd_add_project(args):
     output_json(project)
 
 
-def cmd_rename_project(args):
+def cmd_update_project(args):
     """Rename an existing project."""
     api = get_api()
 
@@ -754,7 +753,7 @@ def main():
         "add": cmd_add_task,
         "update": cmd_update_task,
         "add-project": cmd_add_project,
-        "update-project": cmd_rename_project,
+        "update-project": cmd_update_project,
         "add-section": cmd_add_section,
         "comments": cmd_get_comments,
         "collaborators": cmd_get_collaborators,
