@@ -41,6 +41,7 @@ from typing import Any
 
 from todoist_gtd.common import (
     get_api,
+    get_current_user,
     collect_paginated,
     to_dict,
     resolve_project,
@@ -102,13 +103,24 @@ def cmd_get_tasks(args):
         label=args.label
     ))
 
-    # Filter by assignee if provided (client-side filter)
+    # Assignee filtering: explicit --assignee, or auto-filter on shared projects
     if args.assignee:
         if not project_id:
             print("Error: --assignee requires --project or --project-id to resolve collaborator", file=sys.stderr)
             sys.exit(1)
         assignee_id = resolve_assignee(api, project_id, args.assignee)
         tasks = [t for t in tasks if getattr(t, 'assignee_id', None) == assignee_id]
+    elif project_id and not getattr(args, 'team', False):
+        # Auto-filter shared projects to current user's tasks
+        collabs = collect_paginated(api.get_collaborators(project_id))
+        if collabs:
+            user = get_current_user()
+            my_id = user['id']
+            my_tasks = [t for t in tasks if getattr(t, 'assignee_id', None) in (my_id, None)]
+            excluded = len(tasks) - len(my_tasks)
+            if excluded > 0:
+                print(f"Showing {len(my_tasks)} of {len(tasks)} tasks (filtered to {user['full_name']}). Use --team for all.", file=sys.stderr)
+            tasks = my_tasks
 
     # Filter by creation date if provided (client-side filter)
     if args.created_before and args.older_than:
@@ -135,10 +147,20 @@ def cmd_get_tasks(args):
 
         tasks = [t for t in tasks if get_created(t) < cutoff]
 
-    # Enrich tasks with comments (only fetch if task has any — avoids unnecessary API calls)
+    # Build assignee lookup if tasks are in a shared project
+    assignee_map = {}
+    if project_id:
+        collabs = collect_paginated(api.get_collaborators(project_id))
+        if collabs:
+            assignee_map = {c.id: c.name for c in collabs}
+
+    # Enrich tasks with comments and assignee names
     enriched = []
     for t in tasks:
         task_dict = to_dict(t)
+        # Resolve assignee_id to human-readable name
+        aid = task_dict.get('assignee_id')
+        task_dict['assignee_name'] = assignee_map.get(aid) if aid else None
         if getattr(t, 'comment_count', 0) > 0:
             comments = collect_paginated(api.get_comments(task_id=t.id))
             task_dict['comments'] = [to_dict(c) for c in comments]
@@ -167,6 +189,14 @@ def cmd_get_task(args):
     except Exception as e:
         handle_task_not_found(e, args.id)
     task_dict = to_dict(task)
+    # Resolve assignee name if task is in a shared project
+    aid = task_dict.get('assignee_id')
+    if aid:
+        collabs = collect_paginated(api.get_collaborators(task.project_id))
+        assignee_map = {c.id: c.name for c in collabs}
+        task_dict['assignee_name'] = assignee_map.get(aid)
+    else:
+        task_dict['assignee_name'] = None
     if getattr(task, 'comment_count', 0) > 0:
         comments = collect_paginated(api.get_comments(task_id=args.id))
         task_dict['comments'] = [to_dict(c) for c in comments]
@@ -538,6 +568,15 @@ def cmd_doctor(args):
         sys.exit(1)
 
 
+def cmd_whoami(args):
+    """Show the current authenticated user."""
+    user = get_current_user()
+    if args.json:
+        print(json.dumps(user, indent=2, default=str))
+    else:
+        print(f"{user['full_name']} <{user['email']}> (id: {user['id']})")
+
+
 def cmd_version(args):
     """Show version and commit info."""
     from importlib.metadata import version as pkg_version, PackageNotFoundError
@@ -583,6 +622,7 @@ def main():
     p.add_argument("--assignee", help="Filter by assignee name (requires --project or --project-id)")
     p.add_argument("--created-before", help="Filter by creation date (YYYY-MM-DD)")
     p.add_argument("--older-than", help="Filter by age (e.g., '30d', '2w', '3m')")
+    p.add_argument("--team", action="store_true", help="Show all team members' tasks (default: only yours on shared projects)")
     p.add_argument("--include-section-name", action="store_true", help="Include section name in output")
 
     p = subparsers.add_parser("task", help="Get a single task")
@@ -643,6 +683,9 @@ def main():
     p.add_argument("--project", help="Project by name (e.g., 'Desired Outcomes Q1')")
 
     # Utility commands
+    p = subparsers.add_parser("whoami", help="Show current authenticated user")
+    p.add_argument("--json", action="store_true", help="Output full user object as JSON")
+
     subparsers.add_parser("doctor", help="Check CLI setup and diagnose issues")
     subparsers.add_parser("version", help="Show version and commit info")
 
@@ -669,6 +712,7 @@ def main():
         "add-section": cmd_add_section,
         "comments": cmd_get_comments,
         "collaborators": cmd_get_collaborators,
+        "whoami": cmd_whoami,
         "doctor": cmd_doctor,
         "version": cmd_version,
     }

@@ -51,6 +51,26 @@ def get_api():
     return TodoistAPI(token, client=client)
 
 
+def get_current_user() -> dict:
+    """
+    Get the current authenticated user from Todoist REST API v1.
+
+    Calls GET /api/v1/user directly (not wrapped by the SDK).
+    Returns dict with id, full_name, email, and other user fields.
+    """
+    from todoist_gtd.token_store import get_token
+    import httpx
+
+    token = get_token()
+    resp = httpx.get(
+        "https://api.todoist.com/api/v1/user",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=DEFAULT_TIMEOUT,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
 def collect_paginated(iterator) -> list:
     """Collect all items from a paginated SDK iterator."""
     items = []
