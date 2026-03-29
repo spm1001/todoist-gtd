@@ -568,6 +568,44 @@ def cmd_doctor(args):
         sys.exit(1)
 
 
+def cmd_add_project(args):
+    """Create a new project."""
+    api = get_api()
+
+    kwargs = {"name": args.name}
+    if args.parent:
+        kwargs["parent_id"] = resolve_project(api, args.parent)
+    if args.color:
+        kwargs["color"] = args.color
+    if args.favorite:
+        kwargs["is_favorite"] = True
+
+    project = api.add_project(**kwargs)
+    output_json(project)
+
+
+def cmd_rename_project(args):
+    """Rename an existing project."""
+    api = get_api()
+
+    project_id = resolve_project(api, args.project)
+
+    kwargs = {}
+    if args.name:
+        kwargs["name"] = args.name
+    if args.color:
+        kwargs["color"] = args.color
+    if args.favorite is not None:
+        kwargs["is_favorite"] = args.favorite
+
+    if not kwargs:
+        print("Error: No update parameters provided (use --name, --color, or --favorite)", file=sys.stderr)
+        sys.exit(1)
+
+    project = api.update_project(project_id, **kwargs)
+    output_json(project)
+
+
 def cmd_whoami(args):
     """Show the current authenticated user."""
     user = get_current_user()
@@ -677,6 +715,18 @@ def main():
     p = subparsers.add_parser("collaborators", help="Get project collaborators")
     p.add_argument("--project-id", required=True, help="Project ID")
 
+    p = subparsers.add_parser("add-project", help="Create a new project")
+    p.add_argument("name", help="Project name")
+    p.add_argument("--parent", help="Parent project name or ID (for nested projects)")
+    p.add_argument("--color", help="Project color (e.g., 'berry_red', 'blue', 'green')")
+    p.add_argument("--favorite", action="store_true", help="Mark as favorite")
+
+    p = subparsers.add_parser("update-project", help="Update a project (rename, recolor, etc.)")
+    p.add_argument("project", help="Project name or ID to update")
+    p.add_argument("--name", help="New project name")
+    p.add_argument("--color", help="New project color")
+    p.add_argument("--favorite", action=argparse.BooleanOptionalAction, help="Set/unset favorite")
+
     p = subparsers.add_parser("add-section", help="Create a new section (outcome)")
     p.add_argument("name", help="Section name")
     p.add_argument("--project-id", help="Project ID")
@@ -709,6 +759,8 @@ def main():
         "completed": cmd_get_completed,
         "add": cmd_add_task,
         "update": cmd_update_task,
+        "add-project": cmd_add_project,
+        "update-project": cmd_rename_project,
         "add-section": cmd_add_section,
         "comments": cmd_get_comments,
         "collaborators": cmd_get_collaborators,
