@@ -10,3 +10,4 @@ ENV/
 
 # Archived tracking (local backup)
 .beads-archived/
+mise/

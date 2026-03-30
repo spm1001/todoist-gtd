@@ -117,24 +117,22 @@ def resolve_project(api, name_or_id: str) -> str:
     sys.exit(1)
 
 
-def resolve_project_with_name(api, name_or_id: str) -> tuple[str, str]:
+def resolve_project_object(api, name_or_id: str):
     """
-    Resolve a project name to (ID, name) tuple.
+    Resolve a project name or ID to the full Project object.
 
-    Returns (project_id, project_name). Exits with error if not found.
+    Returns the SDK Project object. Exits with error if not found.
     """
     projects = collect_paginated(api.get_projects())
     name_lower = name_or_id.lower()
 
-    # Try name lookup
     for p in projects:
         if p.name.lower() == name_lower:
-            return p.id, p.name
+            return p
 
-    # Try ID lookup
     for p in projects:
         if p.id == name_or_id:
-            return p.id, p.name
+            return p
 
     print(f"Error: Project '{name_or_id}' not found", file=sys.stderr)
     sys.exit(1)

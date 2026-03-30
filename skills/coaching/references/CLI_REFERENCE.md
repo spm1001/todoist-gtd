@@ -24,7 +24,7 @@ Token is stored in macOS Keychain (if available) or in `~/.claude/plugins/data/t
 
 If auth fails, prompt user to run `todoist auth` or re-run `todoist auth --token` with a fresh token.
 
-**Key design choice:** CLI shows ALL tasks by default. Unlike the MCP which defaults to hiding tasks assigned to others (`responsibleUserFiltering: "unassignedOrMe"`), this CLI shows everything. This prevents the duplicate-task bug where Claude couldn't see teammates' work.
+**Key design choice:** On workspace (team) projects, the CLI auto-filters to show only your tasks by default. Use `--team` for all tasks, `--unassigned` for triage. On personal projects, all tasks are shown regardless of collaborators.
 
 ### Error Handling
 
@@ -76,7 +76,7 @@ todoist sections --project-id "<desired-outcomes-q4-id>"
 todoist tasks --section-id "<outcome-section-id>"
 ```
 
-**No filtering gotcha:** CLI shows ALL tasks by default, including teammates' work.
+**Workspace filtering:** On team projects, shows only your tasks by default. Use `--team` for all, `--unassigned` for untriaged items.
 
 ### Check Claude Inbox
 ```bash

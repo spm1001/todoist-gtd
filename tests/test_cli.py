@@ -36,6 +36,11 @@ def make_task(task_id="t1", content="Test task", assignee_id=None, project_id="p
     return task
 
 
+def make_project(project_id="p1", name="Test", workspace_id=None):
+    """Create a mock Project object matching the SDK's interface."""
+    return SimpleNamespace(id=project_id, name=name, workspace_id=workspace_id)
+
+
 def make_collaborator(cid, name, email=""):
     return SimpleNamespace(id=cid, name=name, email=email)
 
@@ -190,19 +195,22 @@ class TestAssigneeEnrichment:
         assert out["assignee_name"] is None
 
 
-# --- Auto-filter on shared projects ---
+# --- Auto-filter on workspace vs personal projects ---
 
 
 class TestAutoFilter:
+    """Workspace projects filter to assigned-to-me; personal projects show all."""
+
     @patch("todoist_gtd.cli.get_current_user")
     @patch("todoist_gtd.cli.get_api")
     @patch("todoist_gtd.cli.collect_paginated")
-    @patch("todoist_gtd.cli.resolve_project")
-    def test_shared_project_filters_to_my_tasks(self, mock_resolve, mock_collect,
-                                                  mock_api, mock_user, capsys):
+    @patch("todoist_gtd.cli.resolve_project_object")
+    def test_workspace_project_filters_to_assigned_only(self, mock_resolve, mock_collect,
+                                                         mock_api, mock_user, capsys):
+        """Workspace project default: only tasks assigned to me (no unassigned)."""
         from todoist_gtd.cli import cmd_get_tasks
 
-        mock_resolve.return_value = "p1"
+        mock_resolve.return_value = make_project("p1", "MIT Board", workspace_id="ws1")
         mock_user.return_value = {"id": "100", "full_name": "Me"}
         mock_api.return_value = MagicMock()
 
@@ -216,14 +224,13 @@ class TestAutoFilter:
 
         mock_collect.side_effect = [
             [my_task, their_task, unassigned],  # get_tasks
-            collabs,                             # get_collaborators (once)
+            collabs,                             # get_collaborators
             [],                                  # comments for t1
-            [],                                  # comments for t3
         ]
 
         args = SimpleNamespace(
-            project="Shared", project_id=None, section=None, section_id=None,
-            label=None, assignee=None, team=False,
+            project="MIT Board", project_id=None, section=None, section_id=None,
+            label=None, assignee=None, team=False, unassigned=False,
             created_before=None, older_than=None, include_section_name=False,
         )
         cmd_get_tasks(args)
@@ -231,16 +238,52 @@ class TestAutoFilter:
         out = json.loads(capsys.readouterr().out)
         contents = [t["content"] for t in out]
         assert "My task" in contents
-        assert "Unassigned task" in contents
         assert "Their task" not in contents
+        assert "Unassigned task" not in contents
+
+    @patch("todoist_gtd.cli.get_current_user")
+    @patch("todoist_gtd.cli.get_api")
+    @patch("todoist_gtd.cli.collect_paginated")
+    @patch("todoist_gtd.cli.resolve_project_object")
+    def test_workspace_unassigned_flag_shows_untriaged(self, mock_resolve, mock_collect,
+                                                        mock_api, mock_user, capsys):
+        """--unassigned on workspace project shows only unassigned tasks."""
+        from todoist_gtd.cli import cmd_get_tasks
+
+        mock_resolve.return_value = make_project("p1", "MIT Board", workspace_id="ws1")
+        mock_user.return_value = {"id": "100", "full_name": "Me"}
+        mock_api.return_value = MagicMock()
+
+        my_task = make_task("t1", "My task", assignee_id="100")
+        unassigned = make_task("t3", "Unassigned task", assignee_id=None)
+        collabs = [make_collaborator("100", "Me")]
+
+        mock_collect.side_effect = [
+            [my_task, unassigned],  # get_tasks
+            collabs,                # get_collaborators
+            [],                     # comments for t3
+        ]
+
+        args = SimpleNamespace(
+            project="MIT Board", project_id=None, section=None, section_id=None,
+            label=None, assignee=None, team=False, unassigned=True,
+            created_before=None, older_than=None, include_section_name=False,
+        )
+        cmd_get_tasks(args)
+
+        out = json.loads(capsys.readouterr().out)
+        contents = [t["content"] for t in out]
+        assert "Unassigned task" in contents
+        assert "My task" not in contents
 
     @patch("todoist_gtd.cli.get_api")
     @patch("todoist_gtd.cli.collect_paginated")
-    @patch("todoist_gtd.cli.resolve_project")
+    @patch("todoist_gtd.cli.resolve_project_object")
     def test_team_flag_shows_all(self, mock_resolve, mock_collect, mock_api, capsys):
+        """--team bypasses all filtering."""
         from todoist_gtd.cli import cmd_get_tasks
 
-        mock_resolve.return_value = "p1"
+        mock_resolve.return_value = make_project("p1", "MIT Board", workspace_id="ws1")
         mock_api.return_value = MagicMock()
 
         my_task = make_task("t1", "My task", assignee_id="100")
@@ -258,8 +301,8 @@ class TestAutoFilter:
         ]
 
         args = SimpleNamespace(
-            project="Shared", project_id=None, section=None, section_id=None,
-            label=None, assignee=None, team=True,
+            project="MIT Board", project_id=None, section=None, section_id=None,
+            label=None, assignee=None, team=True, unassigned=False,
             created_before=None, older_than=None, include_section_name=False,
         )
         cmd_get_tasks(args)
@@ -269,31 +312,68 @@ class TestAutoFilter:
 
     @patch("todoist_gtd.cli.get_api")
     @patch("todoist_gtd.cli.collect_paginated")
-    @patch("todoist_gtd.cli.resolve_project")
+    @patch("todoist_gtd.cli.resolve_project_object")
     def test_personal_project_no_filter(self, mock_resolve, mock_collect, mock_api, capsys):
+        """Personal project (no workspace_id): show all tasks, no filtering."""
         from todoist_gtd.cli import cmd_get_tasks
 
-        mock_resolve.return_value = "p1"
+        mock_resolve.return_value = make_project("p1", "Personal", workspace_id=None)
         mock_api.return_value = MagicMock()
 
         tasks = [make_task("t1", "Task A"), make_task("t2", "Task B")]
 
         mock_collect.side_effect = [
             tasks,  # get_tasks
-            [],     # get_collaborators (empty = personal)
+            [],     # get_collaborators (empty)
             [],     # comments for t1
             [],     # comments for t2
         ]
 
         args = SimpleNamespace(
             project="Personal", project_id=None, section=None, section_id=None,
-            label=None, assignee=None, team=False,
+            label=None, assignee=None, team=False, unassigned=False,
             created_before=None, older_than=None, include_section_name=False,
         )
         cmd_get_tasks(args)
 
         out = json.loads(capsys.readouterr().out)
         assert len(out) == 2
+
+    @patch("todoist_gtd.cli.get_api")
+    @patch("todoist_gtd.cli.collect_paginated")
+    @patch("todoist_gtd.cli.resolve_project_object")
+    def test_personal_with_collaborators_no_filter(self, mock_resolve, mock_collect, mock_api, capsys):
+        """Personal project WITH collaborators but no workspace_id: show all tasks."""
+        from todoist_gtd.cli import cmd_get_tasks
+
+        mock_resolve.return_value = make_project("p1", "At Work", workspace_id=None)
+        mock_api.return_value = MagicMock()
+
+        my_task = make_task("t1", "My task", assignee_id="100")
+        their_task = make_task("t2", "Shared task", assignee_id="200")
+        unassigned = make_task("t3", "Unassigned", assignee_id=None)
+        collabs = [
+            make_collaborator("100", "Me"),
+            make_collaborator("200", "Them"),
+        ]
+
+        mock_collect.side_effect = [
+            [my_task, their_task, unassigned],  # get_tasks
+            collabs,                             # get_collaborators
+            [],                                  # comments for t1
+            [],                                  # comments for t2
+            [],                                  # comments for t3
+        ]
+
+        args = SimpleNamespace(
+            project="At Work", project_id=None, section=None, section_id=None,
+            label=None, assignee=None, team=False, unassigned=False,
+            created_before=None, older_than=None, include_section_name=False,
+        )
+        cmd_get_tasks(args)
+
+        out = json.loads(capsys.readouterr().out)
+        assert len(out) == 3  # All tasks shown, no filtering
 
 
 # --- Comment guard removal ---

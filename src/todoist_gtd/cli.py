@@ -10,9 +10,13 @@ Commands:
     auth --token TOKEN  Store a personal API token
     auth --status       Check authentication status
     projects            List all projects
+    add-project NAME    Create a new project (--parent, --color, --favorite)
+    update-project P    Update a project (--name, --color, --favorite)
     sections            List sections (--project or --project-id to filter)
+    add-section NAME    Create a new section (--project or --project-id)
     tasks               List tasks with comments inline
                         Supports --project, --section, --older-than, --include-section-name
+                        Auto-filters workspace projects to your tasks (--unassigned for triage, --team for all)
     task ID             Get single task with comments inline
     filter QUERY        Filter tasks (no comments - can return many)
     done ID             Complete a task
@@ -21,9 +25,9 @@ Commands:
     completed           List completed tasks (--since, --until, --project)
     add CONTENT         Create a new task (--project, --section for placement)
     update ID           Update/move task (--content, --project, --section, etc.)
-    add-section NAME    Create a new section (--project or --project-id)
     comments            Get comments standalone (rarely needed)
     collaborators       Get project collaborators (requires --project-id)
+    whoami              Show current authenticated user
 
 Authentication:
     Run `todoist auth` to set up (opens Todoist settings, prompts for token).
@@ -45,6 +49,7 @@ from todoist_gtd.common import (
     collect_paginated,
     to_dict,
     resolve_project,
+    resolve_project_object,
     resolve_section,
     resolve_assignee,
     handle_task_not_found,
@@ -84,10 +89,18 @@ def cmd_get_tasks(args):
     """List tasks with optional filters."""
     api = get_api()
 
-    # Resolve project name to ID if provided
+    # Resolve project name to ID, keeping the project object for workspace detection
     project_id = args.project_id
+    project_obj = None
     if args.project:
-        project_id = resolve_project(api, args.project)
+        project_obj = resolve_project_object(api, args.project)
+        project_id = project_obj.id
+    elif args.project_id:
+        # When using --project-id directly, fetch the project object for workspace detection
+        try:
+            project_obj = api.get_project(project_id=args.project_id)
+        except Exception:
+            pass  # Will fail later on get_tasks if invalid
 
     # Resolve section name to ID if provided
     section_id = args.section_id
@@ -103,7 +116,7 @@ def cmd_get_tasks(args):
         label=args.label
     ))
 
-    # Fetch collaborators once for shared project detection, filtering, and enrichment
+    # Fetch collaborators for shared projects (enrichment + explicit --assignee filtering)
     collabs = []
     assignee_map = {}
     if project_id:
@@ -111,21 +124,35 @@ def cmd_get_tasks(args):
         if collabs:
             assignee_map = {c.id: c.name for c in collabs}
 
-    # Assignee filtering: explicit --assignee, or auto-filter on shared projects
+    # Determine if this is a team workspace project (workspace_id set)
+    is_workspace_project = (
+        project_obj is not None
+        and getattr(project_obj, 'workspace_id', None) is not None
+    )
+
+    # Assignee filtering: explicit --assignee, or auto-filter on workspace projects
     if args.assignee:
         if not project_id:
             print("Error: --assignee requires --project or --project-id to resolve collaborator", file=sys.stderr)
             sys.exit(1)
         assignee_id = resolve_assignee(api, project_id, args.assignee)
         tasks = [t for t in tasks if getattr(t, 'assignee_id', None) == assignee_id]
-    elif collabs and not getattr(args, 'team', False):
-        # Auto-filter shared projects to current user's tasks
+    elif is_workspace_project and collabs and not getattr(args, 'team', False):
+        # Auto-filter workspace (team) projects to current user's tasks
         user = get_current_user()
         my_id = user['id']
-        my_tasks = [t for t in tasks if getattr(t, 'assignee_id', None) in (my_id, None)]
-        excluded = len(tasks) - len(my_tasks)
-        if excluded > 0:
-            print(f"Showing {len(my_tasks)} of {len(tasks)} tasks (filtered to {user['full_name']}). Use --team for all.", file=sys.stderr)
+        if getattr(args, 'unassigned', False):
+            # Triage mode: show unassigned tasks only
+            my_tasks = [t for t in tasks if getattr(t, 'assignee_id', None) is None]
+            excluded = len(tasks) - len(my_tasks)
+            if excluded > 0:
+                print(f"Showing {len(my_tasks)} unassigned tasks of {len(tasks)} total. Use --team for all.", file=sys.stderr)
+        else:
+            # Default: assigned-to-me only (exclude unassigned)
+            my_tasks = [t for t in tasks if getattr(t, 'assignee_id', None) == my_id]
+            excluded = len(tasks) - len(my_tasks)
+            if excluded > 0:
+                print(f"Showing {len(my_tasks)} of {len(tasks)} tasks (assigned to {user['full_name']}). Use --unassigned for triage, --team for all.", file=sys.stderr)
         tasks = my_tasks
 
     # Filter by creation date if provided (client-side filter)
@@ -653,7 +680,8 @@ def main():
     p.add_argument("--assignee", help="Filter by assignee name (requires --project or --project-id)")
     p.add_argument("--created-before", help="Filter by creation date (YYYY-MM-DD)")
     p.add_argument("--older-than", help="Filter by age (e.g., '30d', '2w', '3m')")
-    p.add_argument("--team", action="store_true", help="Show all team members' tasks (default: only yours on shared projects)")
+    p.add_argument("--team", action="store_true", help="Show all team members' tasks (default: only yours on workspace projects)")
+    p.add_argument("--unassigned", action="store_true", help="Show unassigned tasks for triage (workspace projects only)")
     p.add_argument("--include-section-name", action="store_true", help="Include section name in output")
 
     p = subparsers.add_parser("task", help="Get a single task")
