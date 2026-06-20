@@ -2,6 +2,11 @@
 
 All notable changes to todoist-gtd.
 
+## [0.4.7] - 2026-06-20
+
+### Fixed
+- `ensure-todoist.sh` auto-update is now diagnosable: installs run with `--no-cache` (a plugin.json-only bump leaves `src/` byte-identical, so without it uv reuses the cached build and the version never moves), and install/update stderr is captured to `~/.cache/todoist/auto-update.log` — the log path and a `--no-cache` recovery command are surfaced on failure instead of a bare "auto-update failed." Propagated from bon (bon-babuse / bon-mavemi).
+
 ## [2026-02-01]
 
 ### Added
