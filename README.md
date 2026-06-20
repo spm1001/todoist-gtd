@@ -2,7 +2,7 @@
 
 > **Status:** Beta — actively developed
 > **Works with:** Claude Code, standalone CLI
-> **Install:** via batterie-de-savoir marketplace
+> **Install:** via the `batterie` marketplace (`spm1001/batterie`)
 > **Requires:** Python 3.11+, Todoist account + API token
 
 Todoist CLI with GTD coaching for Claude Code.
@@ -11,11 +11,11 @@ A Python CLI for Todoist that understands GTD semantics — outcomes vs actions,
 
 ## Quick Start
 
-Install via batterie-de-savoir marketplace:
+Install via the batterie marketplace:
 
 ```bash
-/plugin marketplace add spm1001/batterie-de-savoir
-/plugin install todoist-gtd
+claude plugin marketplace add spm1001/batterie
+/plugin install todoist-gtd@batterie
 ```
 
 Then set up authentication and verify:

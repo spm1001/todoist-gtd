@@ -2,6 +2,12 @@
 
 All notable changes to todoist-gtd.
 
+## [0.4.8] - 2026-06-20
+
+### Docs
+- Post-cutover staleness sweep. README install used the pre-cutover marketplace name (`add spm1001/batterie-de-savoir` + unqualified `/plugin install todoist-gtd`) → `claude plugin marketplace add spm1001/batterie` + `todoist-gtd@batterie`. CLAUDE.md install paths fixed (`~/Repos` → `~/repos/spm1001`, git+https fallback, `--no-cache` on reinstall). The coaching skill's "install the CLI" step taught the plugin-cache `find ... pyproject.toml` pattern that fails post-cutover (cache ships no pyproject) — replaced with the source-repo / git+https logic the SessionStart hook already uses. CLI_REFERENCE install verb names the source repo.
+- NOTE: the stale plugin-data token-dir name (`todoist-gtd-batterie-de-savoir` in token_store.py/ensure-todoist.sh/CLI_REFERENCE — CC now creates `todoist-gtd-batterie`) is tracked separately as tgt-kobale (migration-safe code fix, not shipped here).
+
 ## [0.4.7] - 2026-06-20
 
 ### Fixed
